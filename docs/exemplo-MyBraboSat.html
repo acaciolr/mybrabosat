@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyBraboSat — vm</title>
+<style>
+:root{--bg:#0B0E14;--bg2:#11151D;--bg3:#171C26;--fg:#EDF2F7;--fg1:#A8B6C6;--fg2:#6D7E90;
+--line:#202836;--brand:#FF8A4C;--ok:#4ADE80;--warn:#E8B33C;--err:#F0705A;--info:#4B93FF;--crit:#D7263D}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg1);
+font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:0 0 60px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+header{background:linear-gradient(135deg,#1A1008 0%,var(--bg) 55%);border-bottom:1px solid var(--line);padding:40px 0 32px;margin-bottom:32px}
+h1{margin:0;font-size:30px;color:var(--fg);letter-spacing:-.02em}h1 b{color:var(--brand)}
+h2{margin:40px 0 14px;font-size:20px;color:var(--fg);border-bottom:1px solid var(--line);padding-bottom:8px}
+h3{margin:26px 0 10px;font-size:16px;color:var(--fg)}
+.sub{color:var(--fg2);font-size:13px;margin-top:6px}
+.conf{display:inline-block;margin-top:14px;padding:4px 12px;border:1px solid var(--err);color:var(--err);
+border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:22px 0}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card .n{font-size:30px;font-weight:700;line-height:1.1;color:var(--fg)}
+.card .l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg2);margin-top:4px}
+.nota{display:flex;align-items:center;gap:22px;background:var(--bg2);border:1px solid var(--line);
+border-radius:14px;padding:22px;margin:22px 0}
+.nota .v{font-size:58px;font-weight:800;line-height:1}
+.bom .v{color:var(--ok)}.medio .v{color:var(--warn)}.ruim .v{color:var(--err)}.critico .v{color:var(--crit)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+th{text-align:left;background:var(--bg3);color:var(--fg2);font-weight:600;font-size:11px;
+letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:hover td{background:var(--bg2)}
+.sev{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:700;
+letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.s-critica{background:rgba(215,38,61,.18);color:#FF8597}.s-alta{background:rgba(240,112,90,.16);color:var(--err)}
+.s-media{background:rgba(232,179,60,.14);color:var(--warn)}.s-baixa{background:rgba(75,147,255,.14);color:#8FBCFF}
+.s-info{background:rgba(109,126,144,.16);color:var(--fg2)}
+.e-PASS{color:var(--ok);font-weight:700}.e-FAIL{color:var(--err);font-weight:700}
+.e-AVALIAR{color:var(--warn);font-weight:700}.e-NA{color:var(--fg2)}
+code{background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#FFD2B8;white-space:pre-wrap;display:inline-block;max-width:100%}
+a{color:var(--brand)}a:hover{color:#FFB48A}
+.vazio{color:var(--ok);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:18px}
+footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--fg2);font-size:12px}
+.acoes{position:fixed;bottom:20px;right:20px;z-index:50;display:flex;gap:8px}
+.acoes .btn{box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.btn{background:var(--brand);color:#1A0F07;border:0;border-radius:9px;padding:9px 16px;
+font:600 13px/1 inherit;cursor:pointer;box-shadow:0 6px 18px -6px rgba(0,0,0,.7)}
+.btn:hover{background:#FFB48A}.btn--g{background:var(--bg3);color:var(--fg1);border:1px solid var(--line)}
+.toc{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:4px 0 8px}
+.toc .t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px}
+.toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}
+.toc li{margin:4px 0;break-inside:avoid}.toc a{text-decoration:none}.toc a:hover{text-decoration:underline}
+.toc .c{color:var(--fg2);font-size:12px}
+.topo-link{float:right;font-size:11px;font-weight:400;color:var(--fg2);text-decoration:none}
+.topo-link:hover{color:var(--brand)}
+.capa{min-height:72vh;display:flex;flex-direction:column;justify-content:center;
+border-bottom:1px solid var(--line);padding:60px 0 50px;margin-bottom:34px}
+.capa .marca{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--brand);margin-bottom:26px}
+.capa h1{font-size:44px;line-height:1.05;margin:0 0 10px}
+.capa .tipo{font-size:19px;color:var(--fg1);margin-bottom:34px}
+.capa .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;
+border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 0;margin-bottom:26px}
+.capa .meta .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}
+.capa .meta .v{color:var(--fg);margin-top:3px;font-weight:600}
+.capa .rod{color:var(--fg2);font-size:12.5px;line-height:1.7}
+.leg{color:var(--fg1);margin:0 0 16px;max-width:76ch}
+.nota-rodape{color:var(--fg2);font-size:12px;font-style:italic;margin:10px 0 0}
+.doc-rodape{display:none}
+@media print{
+  :root{--bg:#fff;--bg2:#fff;--bg3:#f4f6f8;--fg:#000;--fg1:#222;--fg2:#555;--line:#ccc;--brand:#C2410C}
+  body{background:#fff;color:#000;font-size:11pt}
+  header{background:#fff;border-bottom:2px solid #000;padding:0 0 12px;margin-bottom:18px}
+  h1{font-size:20pt}h2{font-size:13pt;page-break-after:avoid}h3{page-break-after:avoid}
+  .acoes{display:none}.topo-link{display:none}
+  .card,.nota{border:1px solid #bbb}
+  table{font-size:9pt}th{background:#eee;color:#000}
+  tr,.card,.nota,h2,h3{break-inside:avoid;page-break-inside:avoid}
+  code{background:#f4f6f8;color:#111;border:1px solid #ddd}
+  a{color:#000;text-decoration:underline}  /* o PDF do navegador mantem o link clicavel */
+  .capa{min-height:0;height:auto;padding:0 0 30px;page-break-after:always;border:0}
+  .leg{max-width:none;text-align:justify}
+  .toc ol{columns:1}
+  .capa h1{font-size:30pt}.capa .tipo{font-size:13pt}
+  .toc{page-break-after:always;border:0;padding:0}
+  .doc-rodape{display:block;position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#555;
+    border-top:1px solid #ccc;padding:4px 0;background:#fff}
+  body{padding-bottom:22mm}
+  .secao{page-break-before:always}
+  .sev{border:1px solid #999;color:#000 !important;background:#fff !important}
+  .e-PASS,.e-FAIL,.e-AVALIAR{color:#000 !important}
+}
+</style></head><body>
+<div class="wrap"><section class="capa">
+<div class="marca">DBA BRABO</div>
+<h1>Avaliacao de Seguranca<br>do Banco de Dados <b>MySQL</b></h1>
+<div class="tipo">Relatorio tecnico de assessment &mdash; gerado pelo MyBraboSat</div>
+<div class="meta">
+<div><div class="k">Servidor</div><div class="v">vm</div></div>
+<div><div class="k">Versao do MySQL</div><div class="v">8.0.46-0ubuntu0.24.04.4</div></div>
+<div><div class="k">Data da coleta</div><div class="v">22/10/2026 15:58</div></div>
+<div><div class="k">Nota de postura</div><div class="v">66/100</div></div>
+</div>
+<div class="rod">Coleta executada por <b>root@localhost</b>. Este documento retrata a configuracao do servidor no instante da coleta.<br>Ferramenta: MyBraboSat 1.0.0 &mdash; by &bull; DBA BRABO.</div>
+<div class="conf">Altamente confidencial &mdash; distribuicao restrita</div>
+</section></div>
+<div class="doc-rodape"><div class="wrap">Avaliacao de Seguranca MySQL &middot; vm &middot; 22/10/2026 &middot; Altamente confidencial &middot; MyBraboSat by DBA BRABO</div></div>
+<div class="acoes">
+<button class="btn" onclick="window.print()" title="Abre a caixa de impressao; escolha Salvar como PDF">Salvar em PDF</button>
+<button class="btn btn--g" onclick="document.querySelectorAll('details').forEach(d=>d.open=true);window.print()" style="display:none"></button>
+</div>
+<div class="wrap">
+<div class="toc" id="indice"><div class="t">Indice</div><ol>
+<li><a href="#documento">Sobre este documento</a> <span class="c">&mdash; escopo e metodo</span></li>
+<li><a href="#legenda">Como ler o relatorio</a> <span class="c">&mdash; severidades e estados</span></li>
+<li><a href="#contexto">Seguranca em MySQL</a> <span class="c">&mdash; por que isto importa</span></li>
+<li><a href="#sumario">Sumario executivo</a> <span class="c">&mdash; nota 66/100</span></li>
+<li><a href="#falhas">Falhas e remediacao</a> <span class="c">&mdash; 9 item(ns)</span></li>
+<li><a href="#avaliar">Itens para avaliar</a> <span class="c">&mdash; 20 item(ns)</span></li>
+<li><a href="#todas">Todas as verificacoes</a> <span class="c">&mdash; 53 checks</span></li>
+<li><a href="#inventario">Inventario do servidor</a> <span class="c">&mdash; contexto tecnico</span></li>
+<li><a href="#limites">Limitacoes e proximos passos</a></li>
+<li><a href="#referencias">Referencias</a></li>
+</ol></div>
+<h2 class="secao" id="documento">1. Sobre este documento<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Este relatorio e o resultado de uma coleta automatizada de configuracao em um servidor MySQL. Ele nao substitui um teste de intrusao nem uma revisao de codigo da aplicacao: olha para como o banco esta configurado, quem tem acesso a ele e o que o servidor registra sobre esse acesso.</p>
+<h3>O que a ferramenta faz</h3>
+<p class="leg">O MyBraboSat executa 53 verificacoes somente de leitura contra <code>mysql</code>, <code>information_schema</code> e <code>performance_schema</code>. Nenhuma alteracao e feita no servidor: o script cria apenas uma tabela temporaria de sessao, que desaparece ao desconectar. A coleta dura segundos e pode ser repetida a qualquer momento para acompanhar a evolucao.</p>
+<h3>Metodo</h3>
+<p class="leg">Cada verificacao recebe uma severidade e um estado. A severidade reflete o impacto caso o item seja explorado; o estado reflete o que foi encontrado. Itens que dependem do contexto da aplicacao nao sao tratados como falha: vao para uma secao propria, de avaliacao. A nota de postura pondera as falhas pela severidade, de modo que uma unica falha critica pesa mais do que varias de baixa.</p>
+<h3>Escopo</h3>
+<p class="leg">Servidor <b>vm</b>, MySQL 8.0.46-0ubuntu0.24.04.4, coletado em 22/10/2026 as 15:58 pela conta <code>root@localhost</code>. Estao fora do escopo: seguranca do sistema operacional, regras de firewall, backup e sua testagem de restauracao, seguranca da aplicacao que consome o banco, e replicas ou nos de cluster nao incluidos nesta coleta.</p>
+<h2 class="secao" id="legenda">2. Como ler o relatorio<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">As tabelas deste documento usam duas classificacoes. Conhece-las evita a leitura errada mais comum, que e tratar todo apontamento como defeito.</p>
+<h3>Severidade &mdash; qual o impacto se o item for explorado</h3>
+<table><tr><th>Severidade</th><th>Peso</th><th>Significado</th></tr>
+<tr><td><span class="sev s-critica">critica</span></td><td>10</td><td>Permite acesso nao autorizado ao dado ou ao servidor, de forma direta e sem obstaculo. Corrigir antes de qualquer outra coisa.</td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td>6</td><td>Amplia bastante a superficie de ataque ou elimina uma barreira importante. Entra no proximo ciclo de mudanca.</td></tr>
+<tr><td><span class="sev s-media">media</span></td><td>3</td><td>Boa pratica consolidada que nao esta aplicada. Enfraquece defesa em profundidade ou rastreabilidade.</td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td>1</td><td>Endurecimento incremental. Vale aplicar quando houver janela.</td></tr>
+<tr><td><span class="sev s-info">info</span></td><td>0</td><td>Inventario e contexto. Nao entra na nota.</td></tr>
+</table>
+<h3>Estado &mdash; o que foi encontrado</h3>
+<table><tr><th>Estado</th><th>Significado</th></tr>
+<tr><td class="e-PASS">PASS</td><td>A configuracao esta de acordo com a recomendacao.</td></tr>
+<tr><td class="e-FAIL">FAIL</td><td>A recomendacao nao esta aplicada. Perde o peso inteiro na nota.</td></tr>
+<tr><td class="e-AVALIAR">AVALIAR</td><td>Depende do contexto: pode ser aceitavel, pode ser risco. Perde metade do peso. Exige decisao humana, nao correcao automatica.</td></tr>
+<tr><td class="e-NA">NA</td><td>Nao aplicavel a esta versao ou edicao do MySQL.</td></tr>
+</table>
+<p class="nota-rodape">Nota de postura = 100 x (1 &minus; peso perdido / peso total). Nesta coleta: 66/100.</p>
+<h2 class="secao" id="contexto">3. Seguranca em MySQL: por que isto importa<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">O banco de dados e o ultimo lugar onde o dado existe em forma utilizavel. Firewall, WAF e autenticacao da aplicacao sao camadas que protegem o caminho ate ele; quando qualquer uma falha, o que resta e a configuracao do proprio servidor. E ela que decide se o invasor encontra uma copia legivel de tudo ou uma barreira a mais.</p>
+<p class="leg">Na pratica, os incidentes com MySQL raramente comecam com uma falha exotica do produto. Comecam com o feijao com arroz: conta sem senha que sobrou de uma migracao, conta de aplicacao com privilegio global porque era mais rapido do que calcular o minimo necessario, trafego de replicacao em texto claro entre dois datacenters, binlog sem criptografia num volume que foi descartado sem apagar, ausencia de auditoria que impede saber o que foi acessado depois que o incidente ja aconteceu.</p>
+<h3>Os quatro eixos avaliados</h3>
+<p class="leg"><b>Identidade e privilegio.</b> Quem entra e o que pode fazer. O principio e o do menor privilegio: cada conta recebe exatamente o que precisa, nem mais. Privilegios amplos como <code>FILE</code> e <code>SUPER</code> transformam qualquer comprometimento de aplicacao em comprometimento do servidor.</p>
+<p class="leg"><b>Criptografia.</b> Em transito e em repouso. TLS protege o dado entre aplicacao e banco, e entre no primario e replicas. A criptografia de tablespace, redo, undo e binlog protege o dado quando o meio fisico sai do seu controle, por descarte, roubo ou snapshot de nuvem.</p>
+<p class="leg"><b>Superficie de ataque.</b> Todo recurso ligado e um recurso que pode ser abusado. <code>local_infile</code>, <code>secure_file_priv</code> vazio, protocolo X ativo sem uso e schemas de teste esquecidos sao portas que ninguem precisa manter abertas.</p>
+<p class="leg"><b>Rastreabilidade.</b> Auditoria nao impede o incidente; ela responde o que aconteceu. Sem trilha de acesso, a pergunta que a diretoria e o regulador fazem depois do vazamento &mdash; quais dados foram acessados, por quem e quando &mdash; nao tem resposta.</p>
+<h3>O recorte regulatorio</h3>
+<p class="leg">A LGPD nao prescreve tecnologia, mas o artigo 46 exige medidas tecnicas aptas a proteger o dado pessoal. Criptografia, controle de acesso e trilha de auditoria sao justamente as evidencias que se apresenta para demonstrar essa aptidao. O CIS Benchmark para MySQL cumpre o papel de baseline reconhecida: e por isso que as verificacoes deste relatorio trazem a referencia CIS correspondente, quando existe.</p>
+<h2 class="secao" id="sumario">4. Sumario executivo<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Retrato da postura em uma tela. A nota pondera as falhas pela severidade; os cartoes mostram a distribuicao. Use esta secao para decidir prioridade, e as duas seguintes para executar.</p>
+<div class="nota ruim"><div class="v">66</div><div><div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg2)">Nota de postura (0&ndash;100)</div><div style="margin-top:6px;color:var(--fg)">Varias frentes abertas. Priorize as de severidade alta.</div></div></div>
+<div class="grid"><div class="card"><div class="n" style="color:#FF8597">0</div><div class="l">Criticas</div></div><div class="card"><div class="n" style="color:var(--err)">7</div><div class="l">Altas</div></div><div class="card"><div class="n" style="color:var(--warn)">2</div><div class="l">Medias</div></div><div class="card"><div class="n" style="color:#8FBCFF">0</div><div class="l">Baixas</div></div><div class="card"><div class="n" style="color:var(--warn)">20</div><div class="l">A avaliar</div></div><div class="card"><div class="n" style="color:var(--ok)">24</div><div class="l">Conformes</div></div><div class="card"><div class="n">53</div><div class="l">Verificacoes</div></div></div>
+<h2 class="secao" id="falhas">5. Falhas e remediacao<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Itens em que a recomendacao nao esta aplicada, ordenados por severidade. Cada linha traz o que foi encontrado no servidor, o comando de correcao e o link para a documentacao oficial. Os comandos usam <code>SET PERSIST</code> onde o parametro aceita, o que sobrevive a reinicializacao sem editar arquivo; onde exige <code>my.cnf</code>, isso esta dito na propria linha.</p>
+<p class="nota-rodape">Antes de aplicar: valide em ambiente de homologacao. Parametros como <code>require_secure_transport</code> e <code>local_infile</code> derrubam conexao de aplicacao que dependa do comportamento antigo.</p>
+
+<table><tr><th>Sev</th><th>Verificacao</th><th>O que foi encontrado</th><th>Como corrigir</th><th>Doc</th></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Administrador acessivel de qualquer host</b><div class="sub">Contas e autenticacao</div></td><td>1 conta(s) administrativa(s) com host '%': sh@%</td><td><code>RENAME USER '&lt;user&gt;'@'%' TO '&lt;user&gt;'@'&lt;ip ou rede especifica&gt;';</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/account-names.html" target="_blank">CIS 1.5</a></td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Componente validate_password ativo</b><div class="sub">Contas e autenticacao</div></td><td>Nenhuma validacao de forca de senha no servidor.</td><td><code>INSTALL COMPONENT 'file://component_validate_password';</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/validate-password.html" target="_blank">CIS 1.1</a></td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Privilegio FILE concedido</b><div class="sub">Privilegios</div></td><td>FILE concedido a: 'debian-sys-maint'@'localhost', 'root'@'localhost', 'sh'@'%' — permite ler e escrever arquivos no servidor.</td><td><code>REVOKE FILE ON *.* FROM '&lt;user&gt;'@'&lt;host&gt;';</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/privileges-provided.html#priv_file" target="_blank">CIS 2.1</a></td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>require_secure_transport</b><div class="sub">Rede e criptografia</div></td><td>require_secure_transport = OFF — conexao sem TLS continua sendo aceita.</td><td><code>SET PERSIST require_secure_transport = ON;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/using-encrypted-connections.html" target="_blank">CIS 6.x</a></td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Criptografia em repouso (tablespace)</b><div class="sub">Rede e criptografia</div></td><td>Nenhuma tabela cifrada em repouso.</td><td><code>ALTER TABLE &lt;schema&gt;.&lt;tabela&gt; ENCRYPTION='Y'; -- exige componente de keyring carregado</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-data-encryption.html" target="_blank">CIS 7.x</a></td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Componente de keyring ativo</b><div class="sub">Rede e criptografia</div></td><td>Nenhum keyring. Sem ele nao ha criptografia de tablespace, redo nem binlog.</td><td><code>Configure component_keyring_file (ou o keyring corporativo) em mysqld.my e carregue com INSTALL COMPONENT.</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/keyring-component-installation.html" target="_blank">CIS 7.x</a></td></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Auditoria instalada</b><div class="sub">Log e auditoria</div></td><td>Nenhum plugin de auditoria. Sem isso nao ha trilha de quem acessou o que.</td><td><code>Enterprise: INSTALL COMPONENT 'file://component_audit_log'. Community: use audit_log do Percona Server ou server_audit do MariaDB/Percona.</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/audit-log.html" target="_blank">CIS 5.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Historico de senhas (anti-reuso)</b><div class="sub">Contas e autenticacao</div></td><td>password_history = 0 (0 = permite repetir a senha anterior)</td><td><code>SET PERSIST password_history = 6; SET PERSIST password_reuse_interval = 365;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html" target="_blank">CIS 1.7</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Bloqueio por tentativas malsucedidas</b><div class="sub">Contas e autenticacao</div></td><td>Nenhuma conta com bloqueio automatico apos erros de senha.</td><td><code>ALTER USER '&lt;user&gt;'@'&lt;host&gt;' FAILED_LOGIN_ATTEMPTS 5 PASSWORD_LOCK_TIME 1;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html#failed-login-tracking" target="_blank">Boa pratica</a></td></tr>
+</table>
+<h2 class="secao" id="avaliar">6. Itens para avaliar<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Nao sao defeitos. Sao decisoes que dependem do desenho da aplicacao e do apetite a risco da empresa &mdash; por exemplo, exigir certificado de cliente em toda conta, ou cifrar o binlog num ambiente onde o volume ja e cifrado pelo storage. Cada item traz a sugestao tecnica; a escolha e de quem conhece o contexto.</p>
+<p>Nao sao falhas: dependem do contexto da sua aplicacao e do apetite a risco da empresa.</p>
+<table><tr><th>Sev</th><th>Verificacao</th><th>Situacao</th><th>Sugestao</th><th>Doc</th></tr>
+<tr><td><span class="sev s-alta">alta</span></td><td><b>Contas com privilegio global perigoso</b><div class="sub">Privilegios</div></td><td>18 conta(s) com SUPER/FILE/PROCESS/SHUTDOWN/GRANT global: 'debian-sys-maint'@'localhost' [CREATE USER]; 'debian-sys-maint'@'localhost' [FILE]; 'debian-sys-maint'@'localhost' [PROCESS]; 'debian-sys-maint'@'localhost' [RELOAD]; 'debian-sys-maint'@'localhost' [SHUTDOWN]; 'debian-sys-maint'@'localhost' [SUPER]; 'root'@'localhost' [CREATE USER]; 'root'@'localhost' [FILE]; 'root'@'localhost' [PROCESS]; 'root'@'localhost' [RELOAD]; 'root'@'localhost' [SHUTDOWN]; 'root'@'localhost' [SUPER]; 'sh'@'%' [CREATE USER]; 'sh'@'%' [FILE]; 'sh'@'%' [PROCESS]; 'sh'@'%' [RELOAD]; 'sh'@'%' [SHUTDOWN]; 'sh'@'%' [SUPER]</td><td><code>REVOKE &lt;privilegio&gt; ON *.* FROM '&lt;user&gt;'@'&lt;host&gt;'; prefira privilegios dinamicos especificos (ex.: BINLOG_ADMIN, SYSTEM_VARIABLES_ADMIN).</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/privileges-provided.html" target="_blank">CIS 2.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>authentication_policy</b><div class="sub">Contas e autenticacao</div></td><td>authentication_policy = *,,</td><td><code>SET PERSIST authentication_policy = '*,,'; -- primeiro fator obrigatorio = default_authentication_plugin forte</code></td><td><a href="https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html#sysvar_authentication_policy" target="_blank">MySQL 8.4</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Expiracao de senha no servidor</b><div class="sub">Contas e autenticacao</div></td><td>default_password_lifetime = 0 (0 = senha nunca expira)</td><td><code>SET PERSIST default_password_lifetime = 180;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html" target="_blank">CIS 1.6</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Separacao por roles</b><div class="sub">Contas e autenticacao</div></td><td>Nenhuma role definida — privilegios provavelmente concedidos direto nas contas.</td><td><code>CREATE ROLE 'app_leitura'; GRANT SELECT ON app.* TO 'app_leitura'; GRANT 'app_leitura' TO 'conta'@'host';</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/roles.html" target="_blank">CIS 1.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Rotinas com SQL SECURITY DEFINER</b><div class="sub">Privilegios</div></td><td>1 rotina(s) executam com o privilegio do criador, nao do chamador.</td><td><code>ALTER PROCEDURE &lt;nome&gt; SQL SECURITY INVOKER; -- quando o chamador ja tiver o privilegio necessario</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/stored-objects-security.html" target="_blank">CIS 2.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Contas sem exigencia de SSL</b><div class="sub">Rede e criptografia</div></td><td>4 conta(s) sem REQUIRE SSL/X509 — dependem so do require_secure_transport global.</td><td><code>ALTER USER '&lt;user&gt;'@'&lt;host&gt;' REQUIRE SSL; -- ou REQUIRE X509 para exigir certificado de cliente</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/create-user.html#create-user-tls" target="_blank">CIS 6.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Redo log cifrado</b><div class="sub">Rede e criptografia</div></td><td>innodb_redo_log_encrypt = OFF</td><td><code>SET PERSIST innodb_redo_log_encrypt = ON;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-data-encryption.html" target="_blank">CIS 7.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Undo log cifrado</b><div class="sub">Rede e criptografia</div></td><td>innodb_undo_log_encrypt = OFF</td><td><code>SET PERSIST innodb_undo_log_encrypt = ON;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/innodb-data-encryption.html" target="_blank">CIS 7.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Binary log cifrado</b><div class="sub">Rede e criptografia</div></td><td>binlog_encryption = OFF — o binlog carrega os dados alterados em claro quando desligado.</td><td><code>SET PERSIST binlog_encryption = ON;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/replication-binlog-encryption.html" target="_blank">CIS 7.x</a></td></tr>
+<tr><td><span class="sev s-media">media</span></td><td><b>Colunas candidatas a dado pessoal</b><div class="sub">Dados sensiveis</div></td><td>12 coluna(s) com nome sugestivo de dado pessoal. Classifique e decida mascaramento, cifra ou minimizacao.</td><td><code>Classifique os dados; avalie cifra em coluna, mascaramento na view ou component_masking.</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/data-masking.html" target="_blank">LGPD art. 46</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Conta root com nome padrao</b><div class="sub">Contas e autenticacao</div></td><td>A conta administrativa ainda se chama root — alvo obvio de forca bruta.</td><td><code>RENAME USER 'root'@'localhost' TO '&lt;nome nao obvio&gt;'@'localhost';</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/security-guidelines.html" target="_blank">Boa pratica</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Exigir senha atual para troca</b><div class="sub">Contas e autenticacao</div></td><td>password_require_current = OFF</td><td><code>SET PERSIST password_require_current = ON;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/password-management.html" target="_blank">Boa pratica</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>partial_revokes habilitado</b><div class="sub">Privilegios</div></td><td>partial_revokes = OFF — com ON da para conceder *.* e revogar schemas sensiveis especificos.</td><td><code>SET PERSIST partial_revokes = ON;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/partial-revokes.html" target="_blank">Boa pratica</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Views com SQL SECURITY DEFINER</b><div class="sub">Privilegios</div></td><td>1 view(s) com DEFINER fora dos schemas do sistema.</td><td><code>ALTER VIEW &lt;nome&gt; SQL SECURITY INVOKER AS ...;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/stored-objects-security.html" target="_blank">Boa pratica</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>skip_name_resolve</b><div class="sub">Configuracao segura</div></td><td>skip_name_resolve = OFF — com OFF o controle de acesso depende de DNS, que pode ser envenenado.</td><td><code>Adicione skip-name-resolve no my.cnf e troque hosts por IP/rede nas contas.</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/host-cache.html" target="_blank">CIS 4.x</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Plugin X Protocol (mysqlx)</b><div class="sub">Configuracao segura</div></td><td>X Protocol ativo na porta 33060 — desligue se a aplicacao nao usa Document Store.</td><td><code>Adicione mysqlx=0 no my.cnf, ou UNINSTALL PLUGIN mysqlx;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/x-plugin.html" target="_blank">Superficie de ataque</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Banner de versao exposto</b><div class="sub">Configuracao segura</div></td><td>version = 8.0.46-0ubuntu0.24.04.4 / version_comment = (Ubuntu) — a versao exata aparece no handshake, antes de qualquer autenticacao.</td><td><code>SET PERSIST version_comment = ''; -- nao esconde a versao, mas reduz a informacao oferecida</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/security-guidelines.html" target="_blank">Boa pratica</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>automatic_sp_privileges</b><div class="sub">Configuracao segura</div></td><td>automatic_sp_privileges = ON — com ON quem cria rotina ganha EXECUTE e ALTER ROUTINE automaticamente.</td><td><code>SET PERSIST automatic_sp_privileges = OFF;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/stored-routines-privileges.html" target="_blank">CIS 4.x</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Slow query log ativo</b><div class="sub">Log e auditoria</div></td><td>slow_query_log = OFF</td><td><code>SET PERSIST slow_query_log = ON; SET PERSIST long_query_time = 1;</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/slow-query-log.html" target="_blank">Operacao</a></td></tr>
+<tr><td><span class="sev s-baixa">baixa</span></td><td><b>Tabelas sem chave primaria</b><div class="sub">Dados sensiveis</div></td><td>1 tabela(s) sem PK — atrapalham replicacao por linha, PITR e rastreio de alteracao.</td><td><code>ALTER TABLE &lt;schema&gt;.&lt;tabela&gt; ADD PRIMARY KEY (&lt;coluna&gt;);</code></td><td><a href="https://dev.mysql.com/doc/refman/8.0/en/replication-features-differing-tables.html" target="_blank">Rastreabilidade</a></td></tr>
+</table>
+<h2 class="secao" id="todas">7. Todas as verificacoes<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">A lista completa, inclusive o que passou. Serve como evidencia de cobertura em auditoria: mostra nao apenas o que falhou, mas tudo o que foi examinado.</p>
+<table><tr><th>Dominio</th><th>Verificacao</th><th>Sev</th><th>Estado</th><th>Detalhe</th></tr>
+<tr><td>Contas e autenticacao</td><td>Conta sem senha definida</td><td><span class="sev s-critica">critica</span></td><td class="e-PASS">PASS</td><td>Nenhuma conta sem senha.</td></tr>
+<tr><td>Contas e autenticacao</td><td>Conta anonima</td><td><span class="sev s-critica">critica</span></td><td class="e-PASS">PASS</td><td>Nenhuma conta anonima.</td></tr>
+<tr><td>Contas e autenticacao</td><td>Administrador acessivel de qualquer host</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>1 conta(s) administrativa(s) com host '%': sh@%</td></tr>
+<tr><td>Contas e autenticacao</td><td>root acessivel remotamente</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>root so acessa localmente.</td></tr>
+<tr><td>Contas e autenticacao</td><td>Conta root com nome padrao</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>A conta administrativa ainda se chama root — alvo obvio de forca bruta.</td></tr>
+<tr><td>Contas e autenticacao</td><td>Autenticacao com mysql_native_password</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>Nenhuma conta usa mysql_native_password.</td></tr>
+<tr><td>Contas e autenticacao</td><td>authentication_policy</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>authentication_policy = *,,</td></tr>
+<tr><td>Contas e autenticacao</td><td>Componente validate_password ativo</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>Nenhuma validacao de forca de senha no servidor.</td></tr>
+<tr><td>Contas e autenticacao</td><td>Expiracao de senha no servidor</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>default_password_lifetime = 0 (0 = senha nunca expira)</td></tr>
+<tr><td>Contas e autenticacao</td><td>Historico de senhas (anti-reuso)</td><td><span class="sev s-media">media</span></td><td class="e-FAIL">FAIL</td><td>password_history = 0 (0 = permite repetir a senha anterior)</td></tr>
+<tr><td>Contas e autenticacao</td><td>Exigir senha atual para troca</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>password_require_current = OFF</td></tr>
+<tr><td>Contas e autenticacao</td><td>Bloqueio por tentativas malsucedidas</td><td><span class="sev s-media">media</span></td><td class="e-FAIL">FAIL</td><td>Nenhuma conta com bloqueio automatico apos erros de senha.</td></tr>
+<tr><td>Contas e autenticacao</td><td>Contas de sistema devidamente travadas</td><td><span class="sev s-info">info</span></td><td class="e-PASS">PASS</td><td>3 conta(s) com account_locked = Y (esperado para mysql.sys, mysql.session, mysql.infoschema).</td></tr>
+<tr><td>Contas e autenticacao</td><td>Separacao por roles</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>Nenhuma role definida — privilegios provavelmente concedidos direto nas contas.</td></tr>
+<tr><td>Contas e autenticacao</td><td>activate_all_roles_on_login</td><td><span class="sev s-baixa">baixa</span></td><td class="e-PASS">PASS</td><td>activate_all_roles_on_login = OFF</td></tr>
+<tr><td>Privilegios</td><td>Contas com privilegio global perigoso</td><td><span class="sev s-alta">alta</span></td><td class="e-AVALIAR">AVALIAR</td><td>18 conta(s) com SUPER/FILE/PROCESS/SHUTDOWN/GRANT global: 'debian-sys-maint'@'localhost' [CREATE USER]; 'debian-sys-maint'@'localhost' [FILE]; 'debian-sys-maint'@'localhost' [PROCESS]; 'debian-sys-maint'@'localhost' [RELOAD]; 'debian-sys-maint'@'localhost' [SHUTDOWN]; 'debian-sys-maint'@'localhost' [SUPER]; 'root'@'localhost' [CREATE USER]; 'root'@'localhost' [FILE]; 'root'@'localhost' [PROCESS]; 'root'@'localhost' [RELOAD]; 'root'@'localhost' [SHUTDOWN]; 'root'@'localhost' [SUPER]; 'sh'@'%' [CREATE USER]; 'sh'@'%' [FILE]; 'sh'@'%' [PROCESS]; 'sh'@'%' [RELOAD]; 'sh'@'%' [SHUTDOWN]; 'sh'@'%' [SUPER]</td></tr>
+<tr><td>Privilegios</td><td>Privilegio FILE concedido</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>FILE concedido a: 'debian-sys-maint'@'localhost', 'root'@'localhost', 'sh'@'%' — permite ler e escrever arquivos no servidor.</td></tr>
+<tr><td>Privilegios</td><td>GRANT OPTION fora da administracao</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>Nenhuma conta comum pode repassar privilegio.</td></tr>
+<tr><td>Privilegios</td><td>Escrita nos schemas do sistema</td><td><span class="sev s-critica">critica</span></td><td class="e-PASS">PASS</td><td>Nenhuma conta comum escreve em mysql/sys.</td></tr>
+<tr><td>Privilegios</td><td>partial_revokes habilitado</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>partial_revokes = OFF — com ON da para conceder *.* e revogar schemas sensiveis especificos.</td></tr>
+<tr><td>Privilegios</td><td>Rotinas com SQL SECURITY DEFINER</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>1 rotina(s) executam com o privilegio do criador, nao do chamador.</td></tr>
+<tr><td>Privilegios</td><td>Views com SQL SECURITY DEFINER</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>1 view(s) com DEFINER fora dos schemas do sistema.</td></tr>
+<tr><td>Privilegios</td><td>DEFINER apontando para conta inexistente</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>Todo DEFINER aponta para uma conta que existe.</td></tr>
+<tr><td>Rede e criptografia</td><td>TLS configurado no servidor</td><td><span class="sev s-critica">critica</span></td><td class="e-PASS">PASS</td><td>Certificado em uso: server-cert.pem</td></tr>
+<tr><td>Rede e criptografia</td><td>require_secure_transport</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>require_secure_transport = OFF — conexao sem TLS continua sendo aceita.</td></tr>
+<tr><td>Rede e criptografia</td><td>Versoes de TLS aceitas</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>tls_version = TLSv1.2,TLSv1.3</td></tr>
+<tr><td>Rede e criptografia</td><td>Contas sem exigencia de SSL</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>4 conta(s) sem REQUIRE SSL/X509 — dependem so do require_secure_transport global.</td></tr>
+<tr><td>Rede e criptografia</td><td>Criptografia em repouso (tablespace)</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>Nenhuma tabela cifrada em repouso.</td></tr>
+<tr><td>Rede e criptografia</td><td>Componente de keyring ativo</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>Nenhum keyring. Sem ele nao ha criptografia de tablespace, redo nem binlog.</td></tr>
+<tr><td>Rede e criptografia</td><td>Redo log cifrado</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>innodb_redo_log_encrypt = OFF</td></tr>
+<tr><td>Rede e criptografia</td><td>Undo log cifrado</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>innodb_undo_log_encrypt = OFF</td></tr>
+<tr><td>Rede e criptografia</td><td>Binary log cifrado</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>binlog_encryption = OFF — o binlog carrega os dados alterados em claro quando desligado.</td></tr>
+<tr><td>Configuracao segura</td><td>local_infile desligado</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>local_infile = OFF</td></tr>
+<tr><td>Configuracao segura</td><td>secure_file_priv restrito</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>secure_file_priv = '/var/lib/mysql-files/'</td></tr>
+<tr><td>Configuracao segura</td><td>Symbolic links desabilitados</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>have_symlink = DISABLED</td></tr>
+<tr><td>Configuracao segura</td><td>skip_name_resolve</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>skip_name_resolve = OFF — com OFF o controle de acesso depende de DNS, que pode ser envenenado.</td></tr>
+<tr><td>Configuracao segura</td><td>Plugin X Protocol (mysqlx)</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>X Protocol ativo na porta 33060 — desligue se a aplicacao nao usa Document Store.</td></tr>
+<tr><td>Configuracao segura</td><td>Banner de versao exposto</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>version = 8.0.46-0ubuntu0.24.04.4 / version_comment = (Ubuntu) — a versao exata aparece no handshake, antes de qualquer autenticacao.</td></tr>
+<tr><td>Configuracao segura</td><td>sql_mode com STRICT</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>sql_mode = ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</td></tr>
+<tr><td>Configuracao segura</td><td>automatic_sp_privileges</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>automatic_sp_privileges = ON — com ON quem cria rotina ganha EXECUTE e ALTER ROUTINE automaticamente.</td></tr>
+<tr><td>Configuracao segura</td><td>Schema de teste presente</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>Nenhum schema de teste.</td></tr>
+<tr><td>Configuracao segura</td><td>Tabelas fora do InnoDB</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>Todas as tabelas de aplicacao usam InnoDB.</td></tr>
+<tr><td>Log e auditoria</td><td>Error log em arquivo</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>log_error = /var/log/mysql/error.log</td></tr>
+<tr><td>Log e auditoria</td><td>Verbosidade do error log</td><td><span class="sev s-baixa">baixa</span></td><td class="e-PASS">PASS</td><td>log_error_verbosity = 2 (1=erro, 2=erro+warning, 3=+nota)</td></tr>
+<tr><td>Log e auditoria</td><td>Auditoria instalada</td><td><span class="sev s-alta">alta</span></td><td class="e-FAIL">FAIL</td><td>Nenhum plugin de auditoria. Sem isso nao ha trilha de quem acessou o que.</td></tr>
+<tr><td>Log e auditoria</td><td>General log desligado</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>general_log = OFF</td></tr>
+<tr><td>Log e auditoria</td><td>Slow query log ativo</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>slow_query_log = OFF</td></tr>
+<tr><td>Log e auditoria</td><td>Binary log habilitado</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>log_bin = ON</td></tr>
+<tr><td>Log e auditoria</td><td>Retencao do binary log</td><td><span class="sev s-media">media</span></td><td class="e-PASS">PASS</td><td>binlog_expire_logs_seconds = 2592000 (30 dia(s))</td></tr>
+<tr><td>Log e auditoria</td><td>performance_schema habilitado</td><td><span class="sev s-baixa">baixa</span></td><td class="e-PASS">PASS</td><td>performance_schema = ON — base de qualquer diagnostico e da propria auditoria de acesso.</td></tr>
+<tr><td>Dados sensiveis</td><td>Colunas candidatas a dado pessoal</td><td><span class="sev s-media">media</span></td><td class="e-AVALIAR">AVALIAR</td><td>12 coluna(s) com nome sugestivo de dado pessoal. Classifique e decida mascaramento, cifra ou minimizacao.</td></tr>
+<tr><td>Dados sensiveis</td><td>Possivel segredo em coluna de texto</td><td><span class="sev s-alta">alta</span></td><td class="e-PASS">PASS</td><td>Nenhuma coluna de senha/token em tipo de texto simples.</td></tr>
+<tr><td>Dados sensiveis</td><td>Tabelas sem chave primaria</td><td><span class="sev s-baixa">baixa</span></td><td class="e-AVALIAR">AVALIAR</td><td>1 tabela(s) sem PK — atrapalham replicacao por linha, PITR e rastreio de alteracao.</td></tr>
+</table>
+<h2 class="secao" id="inventario">8. Inventario do servidor<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Contexto tecnico para quem le o relatorio sem ter acesso ao servidor. Util tambem como anexo de auditoria: registra a versao exata, as contas existentes e o volume de dado no momento da coleta.</p>
+<h3>Identificacao</h3><table><tr><th>Item</th><th>Valor</th></tr>
+<tr><td>Versao</td><td><code>8.0.46-0ubuntu0.24.04.4</code></td></tr>
+<tr><td>Distribuicao</td><td><code>(Ubuntu)</code></td></tr>
+<tr><td>Hostname</td><td><code>vm</code></td></tr>
+<tr><td>Porta</td><td><code>3306</code></td></tr>
+<tr><td>Datadir</td><td><code>/var/lib/mysql/</code></td></tr>
+<tr><td>Diretorio base</td><td><code>/usr/</code></td></tr>
+<tr><td>Charset do servidor</td><td><code>utf8mb4</code></td></tr>
+<tr><td>Collation</td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+<tr><td>Fuso horario</td><td><code>UTC</code></td></tr>
+<tr><td>Uptime</td><td><code>0 dia(s)</code></td></tr>
+</table>
+<p class="leg" style="margin-top:18px"><b>Contas.</b> A coluna SSL mostra se a conta exige conexao cifrada por si so; quando esta vazia, a protecao depende apenas do parametro global. A coluna de plugin identifica o metodo de autenticacao.</p>
+<h3>Contas</h3><table><tr><th>Conta</th><th>Plugin</th><th>Travada</th><th>SSL</th><th>Expira</th><th>Senha alterada em</th></tr>
+<tr><td><code>debian-sys-maint@localhost</code></td><td>caching_sha2_password</td><td><span class="e-FAIL">nao</span></td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-06 20:50:15</td></tr>
+<tr><td><code>lab@localhost</code></td><td>caching_sha2_password</td><td><span class="e-FAIL">nao</span></td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-08 02:54:06</td></tr>
+<tr><td><code>mysql.infoschema@localhost</code></td><td>caching_sha2_password</td><td>sim</td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-06 20:50:14</td></tr>
+<tr><td><code>mysql.session@localhost</code></td><td>caching_sha2_password</td><td>sim</td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-06 20:50:14</td></tr>
+<tr><td><code>mysql.sys@localhost</code></td><td>caching_sha2_password</td><td>sim</td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-06 20:50:14</td></tr>
+<tr><td><code>root@localhost</code></td><td>auth_socket</td><td><span class="e-FAIL">nao</span></td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-06 20:50:14</td></tr>
+<tr><td><code>sh@%</code></td><td>caching_sha2_password</td><td><span class="e-FAIL">nao</span></td><td><span class="e-AVALIAR">nenhum</span></td><td>padrao</td><td>2026-10-14 02:45:13</td></tr>
+</table>
+<h3>Schemas e tamanho</h3><table><tr><th>Schema</th><th>Tabelas</th><th>Dados (MB)</th><th>Indice (MB)</th><th>Engines</th></tr>
+<tr><td><b>brabo</b></td><td>5</td><td>3.0</td><td>4.4</td><td>InnoDB</td></tr>
+<tr><td><b>mysql</b></td><td>37</td><td>2.3</td><td>0.3</td><td>CSV, InnoDB</td></tr>
+<tr><td><b>t</b></td><td>15</td><td>0.2</td><td>0.0</td><td>InnoDB</td></tr>
+<tr><td><b>lab</b></td><td>4</td><td>0.1</td><td>0.0</td><td>InnoDB</td></tr>
+<tr><td><b>sm</b></td><td>4</td><td>0.1</td><td>0.0</td><td>InnoDB</td></tr>
+<tr><td><b>loja</b></td><td>1</td><td>0.0</td><td>0.0</td><td>InnoDB</td></tr>
+<tr><td><b>sys</b></td><td>101</td><td>0.0</td><td>0.0</td><td>InnoDB</td></tr>
+</table>
+<h3>Maiores tabelas</h3><table><tr><th>Tabela</th><th>Engine</th><th>Linhas (aprox.)</th><th>Total (MB)</th><th>Cifrada</th></tr>
+<tr><td><code>brabo.movimentos</code></td><td>InnoDB</td><td>52,283</td><td>6.5</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>brabo.clientes</code></td><td>InnoDB</td><td>2,000</td><td>0.4</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>brabo.auditoria_contas</code></td><td>InnoDB</td><td>2,002</td><td>0.3</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>brabo.contas</code></td><td>InnoDB</td><td>2,200</td><td>0.2</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>brabo.transferencias</code></td><td>InnoDB</td><td>1,007</td><td>0.1</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>loja.pedidos</code></td><td>InnoDB</td><td>2</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>t.audit_ped</code></td><td>InnoDB</td><td>0</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>lab.movimentos</code></td><td>InnoDB</td><td>10</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>lab.contas</code></td><td>InnoDB</td><td>5</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>lab.clientes</code></td><td>InnoDB</td><td>4</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>lab._sqlx_migrations</code></td><td>InnoDB</td><td>2</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>sm.pedidos</code></td><td>InnoDB</td><td>8</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>sm.func</code></td><td>InnoDB</td><td>5</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>sm.clientes</code></td><td>InnoDB</td><td>5</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>sm.audit_ped</code></td><td>InnoDB</td><td>0</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>t.stage_clientes</code></td><td>InnoDB</td><td>3</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>t.rotas</code></td><td>InnoDB</td><td>4</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>t.pedidos_2026</code></td><td>InnoDB</td><td>3</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>t.pedidos_2025</code></td><td>InnoDB</td><td>3</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+<tr><td><code>t.pedidos</code></td><td>InnoDB</td><td>7</td><td>0.0</td><td><span class="e-AVALIAR">nao</span></td></tr>
+</table>
+<p class="leg" style="margin-top:18px"><b>Parametros.</b> Os valores abaixo sao os que estavam em vigor na coleta. Compare com o <code>my.cnf</code>: divergencia entre os dois indica parametro alterado em tempo de execucao que voltara ao antigo no proximo restart.</p>
+<h3>Parametros de seguranca</h3><table><tr><th>Parametro</th><th>Valor</th></tr>
+<tr><td><code>activate_all_roles_on_login</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>authentication_policy</code></td><td><code>*,,</code></td></tr>
+<tr><td><code>automatic_sp_privileges</code></td><td><code>ON</code></td></tr>
+<tr><td><code>binlog_encryption</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>connect_timeout</code></td><td><code>10</code></td></tr>
+<tr><td><code>default_password_lifetime</code></td><td><code>0</code></td></tr>
+<tr><td><code>general_log</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>innodb_redo_log_encrypt</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>innodb_undo_log_encrypt</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>local_infile</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>log_bin</code></td><td><code>ON</code></td></tr>
+<tr><td><code>max_connections</code></td><td><code>151</code></td></tr>
+<tr><td><code>max_user_connections</code></td><td><code>0</code></td></tr>
+<tr><td><code>partial_revokes</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>password_history</code></td><td><code>0</code></td></tr>
+<tr><td><code>password_reuse_interval</code></td><td><code>0</code></td></tr>
+<tr><td><code>require_secure_transport</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>secure_file_priv</code></td><td><code>/var/lib/mysql-files/</code></td></tr>
+<tr><td><code>skip_name_resolve</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>sql_mode</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td></tr>
+<tr><td><code>ssl_ca</code></td><td><code>ca.pem</code></td></tr>
+<tr><td><code>ssl_cert</code></td><td><code>server-cert.pem</code></td></tr>
+<tr><td><code>tls_version</code></td><td><code>TLSv1.2,TLSv1.3</code></td></tr>
+<tr><td><code>wait_timeout</code></td><td><code>28800</code></td></tr>
+</table>
+<h2 class="secao" id="limites">9. Limitacoes e proximos passos<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Esta avaliacao le configuracao. Ela nao tenta explorar nada, nao mede a forca das senhas realmente em uso (apenas se ha politica que as exija), nao verifica se o backup restaura, e nao enxerga o que acontece fora do servidor: regra de firewall, permissao de arquivo no sistema operacional, segredo em codigo da aplicacao.</p>
+<p class="leg">O encaminhamento natural, em ordem: (1) tratar as falhas criticas e altas em janela de mudanca, comecando pelas de identidade e privilegio; (2) decidir os itens em avaliacao com quem conhece a aplicacao, registrando a decisao &mdash; aceitar risco de forma consciente e documentada e uma resposta valida; (3) repetir esta coleta apos as mudancas e comparar a nota; (4) complementar com teste de restauracao de backup e revisao das regras de rede, que estao fora do alcance desta ferramenta.</p>
+<h2 class="secao" id="referencias">10. Referencias<a class="topo-link" href="#indice">voltar ao indice</a></h2>
+<p class="leg">Fontes usadas nas recomendacoes deste documento. Os links da coluna Doc em cada tabela apontam para a pagina especifica do parametro ou recurso tratado.</p>
+<table><tr><th>Fonte</th><th>Para que serve</th></tr>
+<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/security.html" target="_blank">MySQL Reference Manual &mdash; Security</a></td><td>Capitulo de seguranca da documentacao oficial.</td></tr>
+<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/security-guidelines.html" target="_blank">Security Guidelines</a></td><td>Recomendacoes gerais da Oracle para endurecer a instalacao.</td></tr>
+<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/mysql-nutshell.html" target="_blank">What Is New in MySQL 8.4</a></td><td>Removidos e depreciados que afetam seguranca (ssl, have_ssl, default_authentication_plugin).</td></tr>
+<tr><td><a href="https://www.cisecurity.org/benchmark/oracle_mysql" target="_blank">CIS Oracle MySQL Benchmark</a></td><td>Baseline de configuracao usado nas colunas de referencia.</td></tr>
+<tr><td><a href="https://www.cvedetails.com/vendor/185/Mysql.html" target="_blank">CVE Details &mdash; MySQL</a></td><td>Confira CVEs da sua versao exata e planeje o patch.</td></tr>
+<tr><td><a href="https://www.gov.br/anpd/pt-br" target="_blank">ANPD &mdash; LGPD</a></td><td>Art. 46: medidas tecnicas de protecao do dado pessoal.</td></tr>
+</table>
+<footer>MyBraboSat 1.0.0 &middot; by &bull; DBA BRABO &middot; relatorio gerado em 22/10/2026 15:58:52<br>Inspirado no <a href="https://github.com/meob/MySAT" target="_blank">MySAT</a> (XeniaLAB srl, licenca MIT). Este derivado tambem e MIT.<br>Documento confidencial: contem o retrato da postura de seguranca do banco.</footer>
+</div></body></html>
