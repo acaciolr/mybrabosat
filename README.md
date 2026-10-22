@@ -28,12 +28,20 @@ _by • **DBA BRABO**_ · [dbabrabo.com.br](https://dbabrabo.com.br)
 Roda no cliente `mysql` de linha de comando, não instala nada, não altera nada no servidor,
 e devolve um **relatório HTML autocontido** — CSS embutido, sem arquivo ao lado, sem CDN,
 sem internet. O mesmo arquivo vira um **documento de assessment em PDF** com um clique.
+E, para quem está no servidor por SSH, sem navegador, o mesmo assessment sai em **texto
+puro** para ler no terminal.
 
 ```bash
+# HTML (e PDF pelo botão do próprio relatório)
 mysql -u auditor -p --skip-column-names -f < mybrabosat.sql > MyBraboSat.html
+
+# TXT, para o terminal
+mysql -u auditor -p --skip-column-names -f \
+      --init-command="SET @mbs_formato='txt'" < mybrabosat.sql > MyBraboSat.txt
+less MyBraboSat.txt
 ```
 
-É isso. Um comando, um arquivo, 53 verificações.
+É isso. Um comando, um arquivo, três saídas: HTML, PDF e TXT.
 
 <div align="center">
   <img src="docs/img/01-capa.png" alt="Capa do relatório MyBraboSat" width="900">
@@ -50,6 +58,7 @@ mysql -u auditor -p --skip-column-names -f < mybrabosat.sql > MyBraboSat.html
 - [Como gerar](#como-gerar)
 - [Requisitos](#requisitos)
 - [Do HTML para o PDF](#do-html-para-o-pdf)
+- [Saída em texto (TXT)](#saída-em-texto-txt)
 - [Domínios cobertos](#domínios-cobertos)
 - [Nota de postura](#nota-de-postura)
 - [Estrutura do documento](#estrutura-do-documento)
@@ -185,6 +194,47 @@ google-chrome --headless --disable-gpu --no-pdf-header-footer \
 
 ---
 
+## Saída em texto (TXT)
+
+Para ler no terminal — por SSH, num bastion, num pipeline de CI — sem abrir navegador.
+O formato é escolhido por uma variável de sessão, `@mbs_formato`; sem ela, sai HTML.
+
+```bash
+mysql -u auditor -p --skip-column-names -f \
+      --init-command="SET @mbs_formato='txt'" < mybrabosat.sql > MyBraboSat.txt
+```
+
+São **os mesmos achados, a mesma nota e a mesma ordem** do HTML, em texto puro de até
+100 colunas — sem cor, sem tabulação, pronto para `less`, `grep` ou anexo de chamado:
+
+```text
+====================================================================================================
+ MyBraboSat 1.1.0 - MySQL Security Assessment                                       by * DBA BRABO
+====================================================================================================
+ Servidor .......: db-prod-01
+ Versao do MySQL : 8.4.8 (MySQL Community Server - GPL)
+ NOTA DE POSTURA : 80/100  (MEDIO)
+ Falhas: critica 1 | alta 2 | media 2 | baixa 0     Avaliar: 15     OK: 36     Verificacoes: 56
+====================================================================================================
+
+ 1. FALHAS E REMEDIACAO  (da mais grave para a menos grave)
+----------------------------------------------------------------------------------------------------
+
+ [CRITICA] Conta sem senha definida  (Contas e autenticacao)
+     Achado ...: 1 conta(s) sem senha: app@%
+     Correcao .: ALTER USER '<user>'@'<host>' IDENTIFIED BY '<senha forte>'; ou DROP USER se nao for usada.
+     Referencia: https://dev.mysql.com/doc/refman/8.0/en/assigning-passwords.html  (CIS 1.3)
+```
+
+Seções do TXT: cabeçalho com nota e contagem, falhas com remediação, itens para avaliar,
+todas as verificações (evidência de cobertura) e inventário (identificação, contas,
+parâmetros de segurança). Capa, índice, legendas e links ficam no HTML.
+
+> O `-f` e o `--skip-column-names` valem aqui também. Sem o `--init-command`, o mesmo
+> `SET @mbs_formato='txt';` pode vir antes do script na mesma sessão.
+
+---
+
 ## Domínios cobertos
 
 **53 verificações**, agrupadas em seis domínios:
@@ -268,7 +318,7 @@ por severidade, nenhum dos três possível quando a saída é um fluxo.
 
 | | MySAT | MyBraboSat |
 | --- | --- | --- |
-| Arquivos de saída | `.htm` + `mysat.css` ao lado | **um único `.html`** |
+| Arquivos de saída | `.htm` + `mysat.css` ao lado | **um único `.html`** (+ PDF) ou **`.txt`** para o terminal |
 | Sumário executivo | — | nota 0–100 + contagem por severidade |
 | Falhas separadas do resto | — | seção própria, ordenada por severidade |
 | Comando de remediação | — | em toda falha, com `SET PERSIST` onde cabe |
@@ -282,6 +332,8 @@ por severidade, nenhum dos três possível quando a saída é um fluxo.
 ## Validação
 
 - Executado contra um **MySQL 8.0.46 real**: sem erro, sem warning.
+- 1.1.0 executado contra **MySQL 8.4.8 Enterprise** nos dois formatos: sem erro; o HTML sai
+  idêntico ao da 1.0.0 e o TXT traz os mesmos achados e a mesma nota.
 - **Teste negativo**: conta sem senha, conta anônima e `mysql_native_password` criados de
   propósito para confirmar que os checks disparam — e disparam.
 - Saída renderizada em **Chromium headless**: todas as âncoras do índice resolvem, o modo de

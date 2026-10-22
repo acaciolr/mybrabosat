@@ -12,10 +12,16 @@
 -- ============================================================================
 --
 --  USO
+--      HTML (padrao) — vira PDF pelo botao "Salvar em PDF" do proprio relatorio:
 --      mysql --user=root -p --skip-column-names -f < mybrabosat.sql > MyBraboSat.html
 --
---      O relatorio sai em UM arquivo so: HTML com CSS embutido, sem
---      dependencia externa. Abra direto no navegador ou mande por e-mail.
+--      TXT — para ler no terminal, por ssh, sem navegador:
+--      mysql --user=root -p --skip-column-names -f \
+--            --init-command="SET @mbs_formato='txt'" < mybrabosat.sql > MyBraboSat.txt
+--
+--      O HTML sai em UM arquivo so, com CSS embutido e sem dependencia
+--      externa. O TXT tem os mesmos achados, a mesma nota e a mesma ordem,
+--      em texto puro de ate 100 colunas.
 --
 --  REQUISITOS
 --      MySQL 8.0 ou superior (testado em 8.0 e 8.4).
@@ -64,7 +70,7 @@
 use sys;
 set names utf8mb4;
 
-set @mbs_versao     = '1.0.0';
+set @mbs_versao     = '1.1.0';
 set @mbs_gerado_em  = now();
 set @mbs_servidor   = @@hostname;
 set @mbs_versao_sql = version();
@@ -73,6 +79,15 @@ set @mbs_menor      = cast(substring_index(substring_index(@@version,'.',2),'.',
 set @mbs_e84        = (@mbs_maior > 8) or (@mbs_maior = 8 and @mbs_menor >= 4);
 set @mbs_usuario    = current_user();
 set @mbs_datadir    = @@datadir;
+
+-- Formato da saida. Vem de fora, antes do script (--init-command ou um SET na
+-- mesma sessao); sem nada, HTML. O script e uma sequencia de SELECTs soltos —
+-- IF so existe dentro de procedure, e criar procedure exigiria escrita no
+-- servidor —, entao cada SELECT de um formato carrega "where @mbs_html" ou
+-- "where @mbs_txt" e sai vazio no outro.
+set @mbs_formato    = lower(coalesce(@mbs_formato,'html'));
+set @mbs_txt        = (@mbs_formato = 'txt');
+set @mbs_html       = not @mbs_txt;
 
 drop temporary table if exists mbs_achados;
 create temporary table mbs_achados (
@@ -722,191 +737,191 @@ set @veredito = case
 --  RELATORIO — arquivo unico, CSS embutido
 -- ============================================================================
 
-select '<!DOCTYPE html>';
-select '<html lang="pt-BR"><head><meta charset="utf-8">';
-select '<meta name="viewport" content="width=device-width, initial-scale=1">';
-select concat('<title>MyBraboSat — ',@mbs_servidor,'</title>');
-select '<style>';
-select ':root{--bg:#0B0E14;--bg2:#11151D;--bg3:#171C26;--fg:#EDF2F7;--fg1:#A8B6C6;--fg2:#6D7E90;';
-select '--line:#202836;--brand:#FF8A4C;--ok:#4ADE80;--warn:#E8B33C;--err:#F0705A;--info:#4B93FF;--crit:#D7263D}';
-select '*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg1);';
-select 'font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:0 0 60px}';
-select '.wrap{max-width:1180px;margin:0 auto;padding:0 24px}';
-select 'header{background:linear-gradient(135deg,#1A1008 0%,var(--bg) 55%);border-bottom:1px solid var(--line);padding:40px 0 32px;margin-bottom:32px}';
-select 'h1{margin:0;font-size:30px;color:var(--fg);letter-spacing:-.02em}h1 b{color:var(--brand)}';
-select 'h2{margin:40px 0 14px;font-size:20px;color:var(--fg);border-bottom:1px solid var(--line);padding-bottom:8px}';
-select 'h3{margin:26px 0 10px;font-size:16px;color:var(--fg)}';
-select '.sub{color:var(--fg2);font-size:13px;margin-top:6px}';
-select '.conf{display:inline-block;margin-top:14px;padding:4px 12px;border:1px solid var(--err);color:var(--err);';
-select 'border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase}';
-select '.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:22px 0}';
-select '.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px}';
-select '.card .n{font-size:30px;font-weight:700;line-height:1.1;color:var(--fg)}';
-select '.card .l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg2);margin-top:4px}';
-select '.nota{display:flex;align-items:center;gap:22px;background:var(--bg2);border:1px solid var(--line);';
-select 'border-radius:14px;padding:22px;margin:22px 0}';
-select '.nota .v{font-size:58px;font-weight:800;line-height:1}';
-select '.bom .v{color:var(--ok)}.medio .v{color:var(--warn)}.ruim .v{color:var(--err)}.critico .v{color:var(--crit)}';
-select 'table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}';
-select 'th{text-align:left;background:var(--bg3);color:var(--fg2);font-weight:600;font-size:11px;';
-select 'letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line)}';
-select 'td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}';
-select 'tr:hover td{background:var(--bg2)}';
-select '.sev{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:700;';
-select 'letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}';
-select '.s-critica{background:rgba(215,38,61,.18);color:#FF8597}.s-alta{background:rgba(240,112,90,.16);color:var(--err)}';
-select '.s-media{background:rgba(232,179,60,.14);color:var(--warn)}.s-baixa{background:rgba(75,147,255,.14);color:#8FBCFF}';
-select '.s-info{background:rgba(109,126,144,.16);color:var(--fg2)}';
-select '.e-PASS{color:var(--ok);font-weight:700}.e-FAIL{color:var(--err);font-weight:700}';
-select '.e-AVALIAR{color:var(--warn);font-weight:700}.e-NA{color:var(--fg2)}';
-select 'code{background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:1px 6px;';
-select 'font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#FFD2B8;white-space:pre-wrap;display:inline-block;max-width:100%}';
-select 'a{color:var(--brand)}a:hover{color:#FFB48A}';
-select '.vazio{color:var(--ok);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:18px}';
-select 'footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--fg2);font-size:12px}';
-select '.acoes{position:fixed;bottom:20px;right:20px;z-index:50;display:flex;gap:8px}';
-select '.acoes .btn{box-shadow:0 6px 20px rgba(0,0,0,.45)}';
-select '.btn{background:var(--brand);color:#1A0F07;border:0;border-radius:9px;padding:9px 16px;';
-select 'font:600 13px/1 inherit;cursor:pointer;box-shadow:0 6px 18px -6px rgba(0,0,0,.7)}';
-select '.btn:hover{background:#FFB48A}.btn--g{background:var(--bg3);color:var(--fg1);border:1px solid var(--line)}';
-select '.toc{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:4px 0 8px}';
-select '.toc .t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px}';
-select '.toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}';
-select '.toc li{margin:4px 0;break-inside:avoid}.toc a{text-decoration:none}.toc a:hover{text-decoration:underline}';
-select '.toc .c{color:var(--fg2);font-size:12px}';
-select '.topo-link{float:right;font-size:11px;font-weight:400;color:var(--fg2);text-decoration:none}';
-select '.topo-link:hover{color:var(--brand)}';
-select '.capa{min-height:72vh;display:flex;flex-direction:column;justify-content:center;';
-select 'border-bottom:1px solid var(--line);padding:60px 0 50px;margin-bottom:34px}';
-select '.capa .marca{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--brand);margin-bottom:26px}';
-select '.capa h1{font-size:44px;line-height:1.05;margin:0 0 10px}';
-select '.capa .tipo{font-size:19px;color:var(--fg1);margin-bottom:34px}';
-select '.capa .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;';
-select 'border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 0;margin-bottom:26px}';
-select '.capa .meta .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}';
-select '.capa .meta .v{color:var(--fg);margin-top:3px;font-weight:600}';
-select '.capa .rod{color:var(--fg2);font-size:12.5px;line-height:1.7}';
-select '.leg{color:var(--fg1);margin:0 0 16px;max-width:76ch}';
-select '.nota-rodape{color:var(--fg2);font-size:12px;font-style:italic;margin:10px 0 0}';
-select '.doc-rodape{display:none}';
-select '@media print{';
-select '  :root{--bg:#fff;--bg2:#fff;--bg3:#f4f6f8;--fg:#000;--fg1:#222;--fg2:#555;--line:#ccc;--brand:#C2410C}';
-select '  body{background:#fff;color:#000;font-size:11pt}';
-select '  header{background:#fff;border-bottom:2px solid #000;padding:0 0 12px;margin-bottom:18px}';
-select '  h1{font-size:20pt}h2{font-size:13pt;page-break-after:avoid}h3{page-break-after:avoid}';
-select '  .acoes{display:none}.topo-link{display:none}';
-select '  .card,.nota{border:1px solid #bbb}';
-select '  table{font-size:9pt}th{background:#eee;color:#000}';
-select '  tr,.card,.nota,h2,h3{break-inside:avoid;page-break-inside:avoid}';
-select '  code{background:#f4f6f8;color:#111;border:1px solid #ddd}';
-select '  a{color:#000;text-decoration:underline}  /* o PDF do navegador mantem o link clicavel */';
-select '  .capa{min-height:0;height:auto;padding:0 0 30px;page-break-after:always;border:0}';
-select '  .leg{max-width:none;text-align:justify}';
-select '  .toc ol{columns:1}';
-select '  .capa h1{font-size:30pt}.capa .tipo{font-size:13pt}';
-select '  .toc{page-break-after:always;border:0;padding:0}';
-select '  .doc-rodape{display:block;position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#555;';
-select '    border-top:1px solid #ccc;padding:4px 0;background:#fff}';
-select '  body{padding-bottom:22mm}';
-select '  .secao{page-break-before:always}';
-select '  .sev{border:1px solid #999;color:#000 !important;background:#fff !important}';
-select '  .e-PASS,.e-FAIL,.e-AVALIAR{color:#000 !important}';
-select '}';
-select '</style></head><body>';
+select '<!DOCTYPE html>' from dual where @mbs_html;
+select '<html lang="pt-BR"><head><meta charset="utf-8">' from dual where @mbs_html;
+select '<meta name="viewport" content="width=device-width, initial-scale=1">' from dual where @mbs_html;
+select concat('<title>MyBraboSat — ',@mbs_servidor,'</title>') from dual where @mbs_html;
+select '<style>' from dual where @mbs_html;
+select ':root{--bg:#0B0E14;--bg2:#11151D;--bg3:#171C26;--fg:#EDF2F7;--fg1:#A8B6C6;--fg2:#6D7E90;' from dual where @mbs_html;
+select '--line:#202836;--brand:#FF8A4C;--ok:#4ADE80;--warn:#E8B33C;--err:#F0705A;--info:#4B93FF;--crit:#D7263D}' from dual where @mbs_html;
+select '*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg1);' from dual where @mbs_html;
+select 'font:15px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:0 0 60px}' from dual where @mbs_html;
+select '.wrap{max-width:1180px;margin:0 auto;padding:0 24px}' from dual where @mbs_html;
+select 'header{background:linear-gradient(135deg,#1A1008 0%,var(--bg) 55%);border-bottom:1px solid var(--line);padding:40px 0 32px;margin-bottom:32px}' from dual where @mbs_html;
+select 'h1{margin:0;font-size:30px;color:var(--fg);letter-spacing:-.02em}h1 b{color:var(--brand)}' from dual where @mbs_html;
+select 'h2{margin:40px 0 14px;font-size:20px;color:var(--fg);border-bottom:1px solid var(--line);padding-bottom:8px}' from dual where @mbs_html;
+select 'h3{margin:26px 0 10px;font-size:16px;color:var(--fg)}' from dual where @mbs_html;
+select '.sub{color:var(--fg2);font-size:13px;margin-top:6px}' from dual where @mbs_html;
+select '.conf{display:inline-block;margin-top:14px;padding:4px 12px;border:1px solid var(--err);color:var(--err);' from dual where @mbs_html;
+select 'border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase}' from dual where @mbs_html;
+select '.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:22px 0}' from dual where @mbs_html;
+select '.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px}' from dual where @mbs_html;
+select '.card .n{font-size:30px;font-weight:700;line-height:1.1;color:var(--fg)}' from dual where @mbs_html;
+select '.card .l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg2);margin-top:4px}' from dual where @mbs_html;
+select '.nota{display:flex;align-items:center;gap:22px;background:var(--bg2);border:1px solid var(--line);' from dual where @mbs_html;
+select 'border-radius:14px;padding:22px;margin:22px 0}' from dual where @mbs_html;
+select '.nota .v{font-size:58px;font-weight:800;line-height:1}' from dual where @mbs_html;
+select '.bom .v{color:var(--ok)}.medio .v{color:var(--warn)}.ruim .v{color:var(--err)}.critico .v{color:var(--crit)}' from dual where @mbs_html;
+select 'table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}' from dual where @mbs_html;
+select 'th{text-align:left;background:var(--bg3);color:var(--fg2);font-weight:600;font-size:11px;' from dual where @mbs_html;
+select 'letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line)}' from dual where @mbs_html;
+select 'td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}' from dual where @mbs_html;
+select 'tr:hover td{background:var(--bg2)}' from dual where @mbs_html;
+select '.sev{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;font-weight:700;' from dual where @mbs_html;
+select 'letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}' from dual where @mbs_html;
+select '.s-critica{background:rgba(215,38,61,.18);color:#FF8597}.s-alta{background:rgba(240,112,90,.16);color:var(--err)}' from dual where @mbs_html;
+select '.s-media{background:rgba(232,179,60,.14);color:var(--warn)}.s-baixa{background:rgba(75,147,255,.14);color:#8FBCFF}' from dual where @mbs_html;
+select '.s-info{background:rgba(109,126,144,.16);color:var(--fg2)}' from dual where @mbs_html;
+select '.e-PASS{color:var(--ok);font-weight:700}.e-FAIL{color:var(--err);font-weight:700}' from dual where @mbs_html;
+select '.e-AVALIAR{color:var(--warn);font-weight:700}.e-NA{color:var(--fg2)}' from dual where @mbs_html;
+select 'code{background:var(--bg3);border:1px solid var(--line);border-radius:5px;padding:1px 6px;' from dual where @mbs_html;
+select 'font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#FFD2B8;white-space:pre-wrap;display:inline-block;max-width:100%}' from dual where @mbs_html;
+select 'a{color:var(--brand)}a:hover{color:#FFB48A}' from dual where @mbs_html;
+select '.vazio{color:var(--ok);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:18px}' from dual where @mbs_html;
+select 'footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);color:var(--fg2);font-size:12px}' from dual where @mbs_html;
+select '.acoes{position:fixed;bottom:20px;right:20px;z-index:50;display:flex;gap:8px}' from dual where @mbs_html;
+select '.acoes .btn{box-shadow:0 6px 20px rgba(0,0,0,.45)}' from dual where @mbs_html;
+select '.btn{background:var(--brand);color:#1A0F07;border:0;border-radius:9px;padding:9px 16px;' from dual where @mbs_html;
+select 'font:600 13px/1 inherit;cursor:pointer;box-shadow:0 6px 18px -6px rgba(0,0,0,.7)}' from dual where @mbs_html;
+select '.btn:hover{background:#FFB48A}.btn--g{background:var(--bg3);color:var(--fg1);border:1px solid var(--line)}' from dual where @mbs_html;
+select '.toc{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:4px 0 8px}' from dual where @mbs_html;
+select '.toc .t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2);margin-bottom:10px}' from dual where @mbs_html;
+select '.toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}' from dual where @mbs_html;
+select '.toc li{margin:4px 0;break-inside:avoid}.toc a{text-decoration:none}.toc a:hover{text-decoration:underline}' from dual where @mbs_html;
+select '.toc .c{color:var(--fg2);font-size:12px}' from dual where @mbs_html;
+select '.topo-link{float:right;font-size:11px;font-weight:400;color:var(--fg2);text-decoration:none}' from dual where @mbs_html;
+select '.topo-link:hover{color:var(--brand)}' from dual where @mbs_html;
+select '.capa{min-height:72vh;display:flex;flex-direction:column;justify-content:center;' from dual where @mbs_html;
+select 'border-bottom:1px solid var(--line);padding:60px 0 50px;margin-bottom:34px}' from dual where @mbs_html;
+select '.capa .marca{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--brand);margin-bottom:26px}' from dual where @mbs_html;
+select '.capa h1{font-size:44px;line-height:1.05;margin:0 0 10px}' from dual where @mbs_html;
+select '.capa .tipo{font-size:19px;color:var(--fg1);margin-bottom:34px}' from dual where @mbs_html;
+select '.capa .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;' from dual where @mbs_html;
+select 'border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 0;margin-bottom:26px}' from dual where @mbs_html;
+select '.capa .meta .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}' from dual where @mbs_html;
+select '.capa .meta .v{color:var(--fg);margin-top:3px;font-weight:600}' from dual where @mbs_html;
+select '.capa .rod{color:var(--fg2);font-size:12.5px;line-height:1.7}' from dual where @mbs_html;
+select '.leg{color:var(--fg1);margin:0 0 16px;max-width:76ch}' from dual where @mbs_html;
+select '.nota-rodape{color:var(--fg2);font-size:12px;font-style:italic;margin:10px 0 0}' from dual where @mbs_html;
+select '.doc-rodape{display:none}' from dual where @mbs_html;
+select '@media print{' from dual where @mbs_html;
+select '  :root{--bg:#fff;--bg2:#fff;--bg3:#f4f6f8;--fg:#000;--fg1:#222;--fg2:#555;--line:#ccc;--brand:#C2410C}' from dual where @mbs_html;
+select '  body{background:#fff;color:#000;font-size:11pt}' from dual where @mbs_html;
+select '  header{background:#fff;border-bottom:2px solid #000;padding:0 0 12px;margin-bottom:18px}' from dual where @mbs_html;
+select '  h1{font-size:20pt}h2{font-size:13pt;page-break-after:avoid}h3{page-break-after:avoid}' from dual where @mbs_html;
+select '  .acoes{display:none}.topo-link{display:none}' from dual where @mbs_html;
+select '  .card,.nota{border:1px solid #bbb}' from dual where @mbs_html;
+select '  table{font-size:9pt}th{background:#eee;color:#000}' from dual where @mbs_html;
+select '  tr,.card,.nota,h2,h3{break-inside:avoid;page-break-inside:avoid}' from dual where @mbs_html;
+select '  code{background:#f4f6f8;color:#111;border:1px solid #ddd}' from dual where @mbs_html;
+select '  a{color:#000;text-decoration:underline}  /* o PDF do navegador mantem o link clicavel */' from dual where @mbs_html;
+select '  .capa{min-height:0;height:auto;padding:0 0 30px;page-break-after:always;border:0}' from dual where @mbs_html;
+select '  .leg{max-width:none;text-align:justify}' from dual where @mbs_html;
+select '  .toc ol{columns:1}' from dual where @mbs_html;
+select '  .capa h1{font-size:30pt}.capa .tipo{font-size:13pt}' from dual where @mbs_html;
+select '  .toc{page-break-after:always;border:0;padding:0}' from dual where @mbs_html;
+select '  .doc-rodape{display:block;position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#555;' from dual where @mbs_html;
+select '    border-top:1px solid #ccc;padding:4px 0;background:#fff}' from dual where @mbs_html;
+select '  body{padding-bottom:22mm}' from dual where @mbs_html;
+select '  .secao{page-break-before:always}' from dual where @mbs_html;
+select '  .sev{border:1px solid #999;color:#000 !important;background:#fff !important}' from dual where @mbs_html;
+select '  .e-PASS,.e-FAIL,.e-AVALIAR{color:#000 !important}' from dual where @mbs_html;
+select '}' from dual where @mbs_html;
+select '</style></head><body>' from dual where @mbs_html;
 
 -- ---------------------------------------------------------------- capa
-select '<div class="wrap"><section class="capa">';
-select '<div class="marca">DBA BRABO</div>';
-select '<h1>Avaliacao de Seguranca<br>do Banco de Dados <b>MySQL</b></h1>';
-select '<div class="tipo">Relatorio tecnico de assessment &mdash; gerado pelo MyBraboSat</div>';
-select '<div class="meta">';
-select concat('<div><div class="k">Servidor</div><div class="v">',@mbs_servidor,'</div></div>');
-select concat('<div><div class="k">Versao do MySQL</div><div class="v">',@mbs_versao_sql,'</div></div>');
+select '<div class="wrap"><section class="capa">' from dual where @mbs_html;
+select '<div class="marca">DBA BRABO</div>' from dual where @mbs_html;
+select '<h1>Avaliacao de Seguranca<br>do Banco de Dados <b>MySQL</b></h1>' from dual where @mbs_html;
+select '<div class="tipo">Relatorio tecnico de assessment &mdash; gerado pelo MyBraboSat</div>' from dual where @mbs_html;
+select '<div class="meta">' from dual where @mbs_html;
+select concat('<div><div class="k">Servidor</div><div class="v">',@mbs_servidor,'</div></div>') from dual where @mbs_html;
+select concat('<div><div class="k">Versao do MySQL</div><div class="v">',@mbs_versao_sql,'</div></div>') from dual where @mbs_html;
 select concat('<div><div class="k">Data da coleta</div><div class="v">',
-              date_format(@mbs_gerado_em,'%d/%m/%Y %H:%i'),'</div></div>');
-select concat('<div><div class="k">Nota de postura</div><div class="v">',@nota,'/100</div></div>');
-select '</div>';
+              date_format(@mbs_gerado_em,'%d/%m/%Y %H:%i'),'</div></div>') from dual where @mbs_html;
+select concat('<div><div class="k">Nota de postura</div><div class="v">',@nota,'/100</div></div>') from dual where @mbs_html;
+select '</div>' from dual where @mbs_html;
 select concat('<div class="rod">Coleta executada por <b>',@mbs_usuario,'</b>. ',
               'Este documento retrata a configuracao do servidor no instante da coleta.<br>',
-              'Ferramenta: MyBraboSat ',@mbs_versao,' &mdash; by &bull; DBA BRABO.</div>');
-select '<div class="conf">Altamente confidencial &mdash; distribuicao restrita</div>';
-select '</section></div>';
+              'Ferramenta: MyBraboSat ',@mbs_versao,' &mdash; by &bull; DBA BRABO.</div>') from dual where @mbs_html;
+select '<div class="conf">Altamente confidencial &mdash; distribuicao restrita</div>' from dual where @mbs_html;
+select '</section></div>' from dual where @mbs_html;
 
 -- rodape que se repete em toda pagina impressa
 select concat('<div class="doc-rodape"><div class="wrap">Avaliacao de Seguranca MySQL &middot; ',
               @mbs_servidor,' &middot; ',date_format(@mbs_gerado_em,'%d/%m/%Y'),
-              ' &middot; Altamente confidencial &middot; MyBraboSat by DBA BRABO</div></div>');
-select '<div class="acoes">';
-select '<button class="btn" onclick="window.print()" title="Abre a caixa de impressao; escolha Salvar como PDF">Salvar em PDF</button>';
-select '<button class="btn btn--g" onclick="document.querySelectorAll(''details'').forEach(d=>d.open=true);window.print()" style="display:none"></button>';
-select '</div>';
-select '<div class="wrap">';
+              ' &middot; Altamente confidencial &middot; MyBraboSat by DBA BRABO</div></div>') from dual where @mbs_html;
+select '<div class="acoes">' from dual where @mbs_html;
+select '<button class="btn" onclick="window.print()" title="Abre a caixa de impressao; escolha Salvar como PDF">Salvar em PDF</button>' from dual where @mbs_html;
+select '<button class="btn btn--g" onclick="document.querySelectorAll(''details'').forEach(d=>d.open=true);window.print()" style="display:none"></button>' from dual where @mbs_html;
+select '</div>' from dual where @mbs_html;
+select '<div class="wrap">' from dual where @mbs_html;
 
-select '<div class="toc" id="indice"><div class="t">Indice</div><ol>';
-select '<li><a href="#documento">Sobre este documento</a> <span class="c">&mdash; escopo e metodo</span></li>';
-select '<li><a href="#legenda">Como ler o relatorio</a> <span class="c">&mdash; severidades e estados</span></li>';
-select '<li><a href="#contexto">Seguranca em MySQL</a> <span class="c">&mdash; por que isto importa</span></li>';
-select concat('<li><a href="#sumario">Sumario executivo</a> <span class="c">&mdash; nota ',@nota,'/100</span></li>');
+select '<div class="toc" id="indice"><div class="t">Indice</div><ol>' from dual where @mbs_html;
+select '<li><a href="#documento">Sobre este documento</a> <span class="c">&mdash; escopo e metodo</span></li>' from dual where @mbs_html;
+select '<li><a href="#legenda">Como ler o relatorio</a> <span class="c">&mdash; severidades e estados</span></li>' from dual where @mbs_html;
+select '<li><a href="#contexto">Seguranca em MySQL</a> <span class="c">&mdash; por que isto importa</span></li>' from dual where @mbs_html;
+select concat('<li><a href="#sumario">Sumario executivo</a> <span class="c">&mdash; nota ',@nota,'/100</span></li>') from dual where @mbs_html;
 select concat('<li><a href="#falhas">Falhas e remediacao</a> <span class="c">&mdash; ',
-              @n_crit+@n_alta+@n_media+@n_baixa,' item(ns)</span></li>');
-select concat('<li><a href="#avaliar">Itens para avaliar</a> <span class="c">&mdash; ',@n_aval,' item(ns)</span></li>');
-select concat('<li><a href="#todas">Todas as verificacoes</a> <span class="c">&mdash; ',@n_tot,' checks</span></li>');
-select '<li><a href="#inventario">Inventario do servidor</a> <span class="c">&mdash; contexto tecnico</span></li>';
-select '<li><a href="#limites">Limitacoes e proximos passos</a></li>';
-select '<li><a href="#referencias">Referencias</a></li>';
-select '</ol></div>';
+              @n_crit+@n_alta+@n_media+@n_baixa,' item(ns)</span></li>') from dual where @mbs_html;
+select concat('<li><a href="#avaliar">Itens para avaliar</a> <span class="c">&mdash; ',@n_aval,' item(ns)</span></li>') from dual where @mbs_html;
+select concat('<li><a href="#todas">Todas as verificacoes</a> <span class="c">&mdash; ',@n_tot,' checks</span></li>') from dual where @mbs_html;
+select '<li><a href="#inventario">Inventario do servidor</a> <span class="c">&mdash; contexto tecnico</span></li>' from dual where @mbs_html;
+select '<li><a href="#limites">Limitacoes e proximos passos</a></li>' from dual where @mbs_html;
+select '<li><a href="#referencias">Referencias</a></li>' from dual where @mbs_html;
+select '</ol></div>' from dual where @mbs_html;
 
 -- ======================================================= sobre o documento
-select '<h2 class="secao" id="documento">1. Sobre este documento<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Este relatorio e o resultado de uma coleta automatizada de configuracao em um servidor MySQL. Ele nao substitui um teste de intrusao nem uma revisao de codigo da aplicacao: olha para como o banco esta configurado, quem tem acesso a ele e o que o servidor registra sobre esse acesso.</p>';
-select '<h3>O que a ferramenta faz</h3>';
-select concat('<p class="leg">O MyBraboSat executa ',@n_tot,' verificacoes somente de leitura contra <code>mysql</code>, <code>information_schema</code> e <code>performance_schema</code>. Nenhuma alteracao e feita no servidor: o script cria apenas uma tabela temporaria de sessao, que desaparece ao desconectar. A coleta dura segundos e pode ser repetida a qualquer momento para acompanhar a evolucao.</p>');
-select '<h3>Metodo</h3>';
-select '<p class="leg">Cada verificacao recebe uma severidade e um estado. A severidade reflete o impacto caso o item seja explorado; o estado reflete o que foi encontrado. Itens que dependem do contexto da aplicacao nao sao tratados como falha: vao para uma secao propria, de avaliacao. A nota de postura pondera as falhas pela severidade, de modo que uma unica falha critica pesa mais do que varias de baixa.</p>';
-select '<h3>Escopo</h3>';
+select '<h2 class="secao" id="documento">1. Sobre este documento<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Este relatorio e o resultado de uma coleta automatizada de configuracao em um servidor MySQL. Ele nao substitui um teste de intrusao nem uma revisao de codigo da aplicacao: olha para como o banco esta configurado, quem tem acesso a ele e o que o servidor registra sobre esse acesso.</p>' from dual where @mbs_html;
+select '<h3>O que a ferramenta faz</h3>' from dual where @mbs_html;
+select concat('<p class="leg">O MyBraboSat executa ',@n_tot,' verificacoes somente de leitura contra <code>mysql</code>, <code>information_schema</code> e <code>performance_schema</code>. Nenhuma alteracao e feita no servidor: o script cria apenas uma tabela temporaria de sessao, que desaparece ao desconectar. A coleta dura segundos e pode ser repetida a qualquer momento para acompanhar a evolucao.</p>') from dual where @mbs_html;
+select '<h3>Metodo</h3>' from dual where @mbs_html;
+select '<p class="leg">Cada verificacao recebe uma severidade e um estado. A severidade reflete o impacto caso o item seja explorado; o estado reflete o que foi encontrado. Itens que dependem do contexto da aplicacao nao sao tratados como falha: vao para uma secao propria, de avaliacao. A nota de postura pondera as falhas pela severidade, de modo que uma unica falha critica pesa mais do que varias de baixa.</p>' from dual where @mbs_html;
+select '<h3>Escopo</h3>' from dual where @mbs_html;
 select concat('<p class="leg">Servidor <b>',@mbs_servidor,'</b>, MySQL ',@mbs_versao_sql,', coletado em ',
        date_format(@mbs_gerado_em,'%d/%m/%Y as %H:%i'),' pela conta <code>',@mbs_usuario,
-       '</code>. Estao fora do escopo: seguranca do sistema operacional, regras de firewall, backup e sua testagem de restauracao, seguranca da aplicacao que consome o banco, e replicas ou nos de cluster nao incluidos nesta coleta.</p>');
+       '</code>. Estao fora do escopo: seguranca do sistema operacional, regras de firewall, backup e sua testagem de restauracao, seguranca da aplicacao que consome o banco, e replicas ou nos de cluster nao incluidos nesta coleta.</p>') from dual where @mbs_html;
 
 -- ============================================================== legenda
-select '<h2 class="secao" id="legenda">2. Como ler o relatorio<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">As tabelas deste documento usam duas classificacoes. Conhece-las evita a leitura errada mais comum, que e tratar todo apontamento como defeito.</p>';
-select '<h3>Severidade &mdash; qual o impacto se o item for explorado</h3>';
-select '<table><tr><th>Severidade</th><th>Peso</th><th>Significado</th></tr>';
-select '<tr><td><span class="sev s-critica">critica</span></td><td>10</td><td>Permite acesso nao autorizado ao dado ou ao servidor, de forma direta e sem obstaculo. Corrigir antes de qualquer outra coisa.</td></tr>';
-select '<tr><td><span class="sev s-alta">alta</span></td><td>6</td><td>Amplia bastante a superficie de ataque ou elimina uma barreira importante. Entra no proximo ciclo de mudanca.</td></tr>';
-select '<tr><td><span class="sev s-media">media</span></td><td>3</td><td>Boa pratica consolidada que nao esta aplicada. Enfraquece defesa em profundidade ou rastreabilidade.</td></tr>';
-select '<tr><td><span class="sev s-baixa">baixa</span></td><td>1</td><td>Endurecimento incremental. Vale aplicar quando houver janela.</td></tr>';
-select '<tr><td><span class="sev s-info">info</span></td><td>0</td><td>Inventario e contexto. Nao entra na nota.</td></tr>';
-select '</table>';
-select '<h3>Estado &mdash; o que foi encontrado</h3>';
-select '<table><tr><th>Estado</th><th>Significado</th></tr>';
-select '<tr><td class="e-PASS">PASS</td><td>A configuracao esta de acordo com a recomendacao.</td></tr>';
-select '<tr><td class="e-FAIL">FAIL</td><td>A recomendacao nao esta aplicada. Perde o peso inteiro na nota.</td></tr>';
-select '<tr><td class="e-AVALIAR">AVALIAR</td><td>Depende do contexto: pode ser aceitavel, pode ser risco. Perde metade do peso. Exige decisao humana, nao correcao automatica.</td></tr>';
-select '<tr><td class="e-NA">NA</td><td>Nao aplicavel a esta versao ou edicao do MySQL.</td></tr>';
-select '</table>';
+select '<h2 class="secao" id="legenda">2. Como ler o relatorio<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">As tabelas deste documento usam duas classificacoes. Conhece-las evita a leitura errada mais comum, que e tratar todo apontamento como defeito.</p>' from dual where @mbs_html;
+select '<h3>Severidade &mdash; qual o impacto se o item for explorado</h3>' from dual where @mbs_html;
+select '<table><tr><th>Severidade</th><th>Peso</th><th>Significado</th></tr>' from dual where @mbs_html;
+select '<tr><td><span class="sev s-critica">critica</span></td><td>10</td><td>Permite acesso nao autorizado ao dado ou ao servidor, de forma direta e sem obstaculo. Corrigir antes de qualquer outra coisa.</td></tr>' from dual where @mbs_html;
+select '<tr><td><span class="sev s-alta">alta</span></td><td>6</td><td>Amplia bastante a superficie de ataque ou elimina uma barreira importante. Entra no proximo ciclo de mudanca.</td></tr>' from dual where @mbs_html;
+select '<tr><td><span class="sev s-media">media</span></td><td>3</td><td>Boa pratica consolidada que nao esta aplicada. Enfraquece defesa em profundidade ou rastreabilidade.</td></tr>' from dual where @mbs_html;
+select '<tr><td><span class="sev s-baixa">baixa</span></td><td>1</td><td>Endurecimento incremental. Vale aplicar quando houver janela.</td></tr>' from dual where @mbs_html;
+select '<tr><td><span class="sev s-info">info</span></td><td>0</td><td>Inventario e contexto. Nao entra na nota.</td></tr>' from dual where @mbs_html;
+select '</table>' from dual where @mbs_html;
+select '<h3>Estado &mdash; o que foi encontrado</h3>' from dual where @mbs_html;
+select '<table><tr><th>Estado</th><th>Significado</th></tr>' from dual where @mbs_html;
+select '<tr><td class="e-PASS">PASS</td><td>A configuracao esta de acordo com a recomendacao.</td></tr>' from dual where @mbs_html;
+select '<tr><td class="e-FAIL">FAIL</td><td>A recomendacao nao esta aplicada. Perde o peso inteiro na nota.</td></tr>' from dual where @mbs_html;
+select '<tr><td class="e-AVALIAR">AVALIAR</td><td>Depende do contexto: pode ser aceitavel, pode ser risco. Perde metade do peso. Exige decisao humana, nao correcao automatica.</td></tr>' from dual where @mbs_html;
+select '<tr><td class="e-NA">NA</td><td>Nao aplicavel a esta versao ou edicao do MySQL.</td></tr>' from dual where @mbs_html;
+select '</table>' from dual where @mbs_html;
 select concat('<p class="nota-rodape">Nota de postura = 100 x (1 &minus; peso perdido / peso total). Nesta coleta: ',
-       @nota,'/100.</p>');
+       @nota,'/100.</p>') from dual where @mbs_html;
 
 -- ============================================================== contexto
-select '<h2 class="secao" id="contexto">3. Seguranca em MySQL: por que isto importa<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">O banco de dados e o ultimo lugar onde o dado existe em forma utilizavel. Firewall, WAF e autenticacao da aplicacao sao camadas que protegem o caminho ate ele; quando qualquer uma falha, o que resta e a configuracao do proprio servidor. E ela que decide se o invasor encontra uma copia legivel de tudo ou uma barreira a mais.</p>';
-select '<p class="leg">Na pratica, os incidentes com MySQL raramente comecam com uma falha exotica do produto. Comecam com o feijao com arroz: conta sem senha que sobrou de uma migracao, conta de aplicacao com privilegio global porque era mais rapido do que calcular o minimo necessario, trafego de replicacao em texto claro entre dois datacenters, binlog sem criptografia num volume que foi descartado sem apagar, ausencia de auditoria que impede saber o que foi acessado depois que o incidente ja aconteceu.</p>';
-select '<h3>Os quatro eixos avaliados</h3>';
-select '<p class="leg"><b>Identidade e privilegio.</b> Quem entra e o que pode fazer. O principio e o do menor privilegio: cada conta recebe exatamente o que precisa, nem mais. Privilegios amplos como <code>FILE</code> e <code>SUPER</code> transformam qualquer comprometimento de aplicacao em comprometimento do servidor.</p>';
-select '<p class="leg"><b>Criptografia.</b> Em transito e em repouso. TLS protege o dado entre aplicacao e banco, e entre no primario e replicas. A criptografia de tablespace, redo, undo e binlog protege o dado quando o meio fisico sai do seu controle, por descarte, roubo ou snapshot de nuvem.</p>';
-select '<p class="leg"><b>Superficie de ataque.</b> Todo recurso ligado e um recurso que pode ser abusado. <code>local_infile</code>, <code>secure_file_priv</code> vazio, protocolo X ativo sem uso e schemas de teste esquecidos sao portas que ninguem precisa manter abertas.</p>';
-select '<p class="leg"><b>Rastreabilidade.</b> Auditoria nao impede o incidente; ela responde o que aconteceu. Sem trilha de acesso, a pergunta que a diretoria e o regulador fazem depois do vazamento &mdash; quais dados foram acessados, por quem e quando &mdash; nao tem resposta.</p>';
-select '<h3>O recorte regulatorio</h3>';
-select '<p class="leg">A LGPD nao prescreve tecnologia, mas o artigo 46 exige medidas tecnicas aptas a proteger o dado pessoal. Criptografia, controle de acesso e trilha de auditoria sao justamente as evidencias que se apresenta para demonstrar essa aptidao. O CIS Benchmark para MySQL cumpre o papel de baseline reconhecida: e por isso que as verificacoes deste relatorio trazem a referencia CIS correspondente, quando existe.</p>';
+select '<h2 class="secao" id="contexto">3. Seguranca em MySQL: por que isto importa<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">O banco de dados e o ultimo lugar onde o dado existe em forma utilizavel. Firewall, WAF e autenticacao da aplicacao sao camadas que protegem o caminho ate ele; quando qualquer uma falha, o que resta e a configuracao do proprio servidor. E ela que decide se o invasor encontra uma copia legivel de tudo ou uma barreira a mais.</p>' from dual where @mbs_html;
+select '<p class="leg">Na pratica, os incidentes com MySQL raramente comecam com uma falha exotica do produto. Comecam com o feijao com arroz: conta sem senha que sobrou de uma migracao, conta de aplicacao com privilegio global porque era mais rapido do que calcular o minimo necessario, trafego de replicacao em texto claro entre dois datacenters, binlog sem criptografia num volume que foi descartado sem apagar, ausencia de auditoria que impede saber o que foi acessado depois que o incidente ja aconteceu.</p>' from dual where @mbs_html;
+select '<h3>Os quatro eixos avaliados</h3>' from dual where @mbs_html;
+select '<p class="leg"><b>Identidade e privilegio.</b> Quem entra e o que pode fazer. O principio e o do menor privilegio: cada conta recebe exatamente o que precisa, nem mais. Privilegios amplos como <code>FILE</code> e <code>SUPER</code> transformam qualquer comprometimento de aplicacao em comprometimento do servidor.</p>' from dual where @mbs_html;
+select '<p class="leg"><b>Criptografia.</b> Em transito e em repouso. TLS protege o dado entre aplicacao e banco, e entre no primario e replicas. A criptografia de tablespace, redo, undo e binlog protege o dado quando o meio fisico sai do seu controle, por descarte, roubo ou snapshot de nuvem.</p>' from dual where @mbs_html;
+select '<p class="leg"><b>Superficie de ataque.</b> Todo recurso ligado e um recurso que pode ser abusado. <code>local_infile</code>, <code>secure_file_priv</code> vazio, protocolo X ativo sem uso e schemas de teste esquecidos sao portas que ninguem precisa manter abertas.</p>' from dual where @mbs_html;
+select '<p class="leg"><b>Rastreabilidade.</b> Auditoria nao impede o incidente; ela responde o que aconteceu. Sem trilha de acesso, a pergunta que a diretoria e o regulador fazem depois do vazamento &mdash; quais dados foram acessados, por quem e quando &mdash; nao tem resposta.</p>' from dual where @mbs_html;
+select '<h3>O recorte regulatorio</h3>' from dual where @mbs_html;
+select '<p class="leg">A LGPD nao prescreve tecnologia, mas o artigo 46 exige medidas tecnicas aptas a proteger o dado pessoal. Criptografia, controle de acesso e trilha de auditoria sao justamente as evidencias que se apresenta para demonstrar essa aptidao. O CIS Benchmark para MySQL cumpre o papel de baseline reconhecida: e por isso que as verificacoes deste relatorio trazem a referencia CIS correspondente, quando existe.</p>' from dual where @mbs_html;
 
 -- ---------------------------------------------------------------- sumario
-select '<h2 class="secao" id="sumario">4. Sumario executivo<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Retrato da postura em uma tela. A nota pondera as falhas pela severidade; os cartoes mostram a distribuicao. Use esta secao para decidir prioridade, e as duas seguintes para executar.</p>';
+select '<h2 class="secao" id="sumario">4. Sumario executivo<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Retrato da postura em uma tela. A nota pondera as falhas pela severidade; os cartoes mostram a distribuicao. Use esta secao para decidir prioridade, e as duas seguintes para executar.</p>' from dual where @mbs_html;
 select concat('<div class="nota ',@classe,'"><div class="v">',@nota,'</div><div><div style="font-size:12px;',
               'letter-spacing:.12em;text-transform:uppercase;color:var(--fg2)">Nota de postura (0&ndash;100)</div>',
-              '<div style="margin-top:6px;color:var(--fg)">',@veredito,'</div></div></div>');
+              '<div style="margin-top:6px;color:var(--fg)">',@veredito,'</div></div></div>') from dual where @mbs_html;
 select concat('<div class="grid">',
    '<div class="card"><div class="n" style="color:#FF8597">',@n_crit,'</div><div class="l">Criticas</div></div>',
    '<div class="card"><div class="n" style="color:var(--err)">',@n_alta,'</div><div class="l">Altas</div></div>',
@@ -915,59 +930,59 @@ select concat('<div class="grid">',
    '<div class="card"><div class="n" style="color:var(--warn)">',@n_aval,'</div><div class="l">A avaliar</div></div>',
    '<div class="card"><div class="n" style="color:var(--ok)">',@n_pass,'</div><div class="l">Conformes</div></div>',
    '<div class="card"><div class="n">',@n_tot,'</div><div class="l">Verificacoes</div></div>',
-   '</div>');
+   '</div>') from dual where @mbs_html;
 
 -- ------------------------------------------------- falhas com remediacao
-select '<h2 class="secao" id="falhas">5. Falhas e remediacao<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Itens em que a recomendacao nao esta aplicada, ordenados por severidade. Cada linha traz o que foi encontrado no servidor, o comando de correcao e o link para a documentacao oficial. Os comandos usam <code>SET PERSIST</code> onde o parametro aceita, o que sobrevive a reinicializacao sem editar arquivo; onde exige <code>my.cnf</code>, isso esta dito na propria linha.</p>';
-select '<p class="nota-rodape">Antes de aplicar: valide em ambiente de homologacao. Parametros como <code>require_secure_transport</code> e <code>local_infile</code> derrubam conexao de aplicacao que dependa do comportamento antigo.</p>';
+select '<h2 class="secao" id="falhas">5. Falhas e remediacao<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Itens em que a recomendacao nao esta aplicada, ordenados por severidade. Cada linha traz o que foi encontrado no servidor, o comando de correcao e o link para a documentacao oficial. Os comandos usam <code>SET PERSIST</code> onde o parametro aceita, o que sobrevive a reinicializacao sem editar arquivo; onde exige <code>my.cnf</code>, isso esta dito na propria linha.</p>' from dual where @mbs_html;
+select '<p class="nota-rodape">Antes de aplicar: valide em ambiente de homologacao. Parametros como <code>require_secure_transport</code> e <code>local_infile</code> derrubam conexao de aplicacao que dependa do comportamento antigo.</p>' from dual where @mbs_html;
 select if(@n_crit+@n_alta+@n_media+@n_baixa = 0,
-   '<div class="vazio">Nenhuma falha. Os itens marcados para avaliacao estao na secao seguinte.</div>','');
+   '<div class="vazio">Nenhuma falha. Os itens marcados para avaliacao estao na secao seguinte.</div>','') from dual where @mbs_html;
 select if(@n_crit+@n_alta+@n_media+@n_baixa = 0,'',
-   '<table><tr><th>Sev</th><th>Verificacao</th><th>O que foi encontrado</th><th>Como corrigir</th><th>Doc</th></tr>');
+   '<table><tr><th>Sev</th><th>Verificacao</th><th>O que foi encontrado</th><th>Como corrigir</th><th>Doc</th></tr>') from dual where @mbs_html;
 select concat('<tr><td><span class="sev s-',sev,'">',sev,'</span></td>',
               '<td><b>',replace(replace(item,'<','&lt;'),'>','&gt;'),'</b><div class="sub">',dominio,'</div></td>',
               '<td>',replace(replace(ifnull(achado,''),'<','&lt;'),'>','&gt;'),'</td>',
               '<td><code>',replace(replace(ifnull(correcao,'&mdash;'),'<','&lt;'),'>','&gt;'),'</code></td>',
               '<td>',if(doc is null,'&mdash;',concat('<a href="',doc,'" target="_blank">',ifnull(ref,'doc'),'</a>')),'</td></tr>')
-  from mbs_achados where estado='FAIL'
+  from mbs_achados where estado='FAIL' and @mbs_html
  order by field(sev,'critica','alta','media','baixa','info'), ord;
-select if(@n_crit+@n_alta+@n_media+@n_baixa = 0,'','</table>');
+select if(@n_crit+@n_alta+@n_media+@n_baixa = 0,'','</table>') from dual where @mbs_html;
 
 -- ------------------------------------------------------------ a avaliar
-select '<h2 class="secao" id="avaliar">6. Itens para avaliar<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Nao sao defeitos. Sao decisoes que dependem do desenho da aplicacao e do apetite a risco da empresa &mdash; por exemplo, exigir certificado de cliente em toda conta, ou cifrar o binlog num ambiente onde o volume ja e cifrado pelo storage. Cada item traz a sugestao tecnica; a escolha e de quem conhece o contexto.</p>';
+select '<h2 class="secao" id="avaliar">6. Itens para avaliar<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Nao sao defeitos. Sao decisoes que dependem do desenho da aplicacao e do apetite a risco da empresa &mdash; por exemplo, exigir certificado de cliente em toda conta, ou cifrar o binlog num ambiente onde o volume ja e cifrado pelo storage. Cada item traz a sugestao tecnica; a escolha e de quem conhece o contexto.</p>' from dual where @mbs_html;
 select if(@n_aval=0,'<div class="vazio">Nada pendente de avaliacao.</div>',
-   '<p>Nao sao falhas: dependem do contexto da sua aplicacao e do apetite a risco da empresa.</p>');
-select if(@n_aval=0,'','<table><tr><th>Sev</th><th>Verificacao</th><th>Situacao</th><th>Sugestao</th><th>Doc</th></tr>');
+   '<p>Nao sao falhas: dependem do contexto da sua aplicacao e do apetite a risco da empresa.</p>') from dual where @mbs_html;
+select if(@n_aval=0,'','<table><tr><th>Sev</th><th>Verificacao</th><th>Situacao</th><th>Sugestao</th><th>Doc</th></tr>') from dual where @mbs_html;
 select concat('<tr><td><span class="sev s-',sev,'">',sev,'</span></td>',
               '<td><b>',replace(replace(item,'<','&lt;'),'>','&gt;'),'</b><div class="sub">',dominio,'</div></td>',
               '<td>',replace(replace(ifnull(achado,''),'<','&lt;'),'>','&gt;'),'</td>',
               '<td><code>',replace(replace(ifnull(correcao,'&mdash;'),'<','&lt;'),'>','&gt;'),'</code></td>',
               '<td>',if(doc is null,'&mdash;',concat('<a href="',doc,'" target="_blank">',ifnull(ref,'doc'),'</a>')),'</td></tr>')
-  from mbs_achados where estado='AVALIAR'
+  from mbs_achados where estado='AVALIAR' and @mbs_html
  order by field(sev,'critica','alta','media','baixa','info'), ord;
-select if(@n_aval=0,'','</table>');
+select if(@n_aval=0,'','</table>') from dual where @mbs_html;
 
 -- -------------------------------------------------------- todos os checks
-select '<h2 class="secao" id="todas">7. Todas as verificacoes<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">A lista completa, inclusive o que passou. Serve como evidencia de cobertura em auditoria: mostra nao apenas o que falhou, mas tudo o que foi examinado.</p>';
-select '<table><tr><th>Dominio</th><th>Verificacao</th><th>Sev</th><th>Estado</th><th>Detalhe</th></tr>';
+select '<h2 class="secao" id="todas">7. Todas as verificacoes<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">A lista completa, inclusive o que passou. Serve como evidencia de cobertura em auditoria: mostra nao apenas o que falhou, mas tudo o que foi examinado.</p>' from dual where @mbs_html;
+select '<table><tr><th>Dominio</th><th>Verificacao</th><th>Sev</th><th>Estado</th><th>Detalhe</th></tr>' from dual where @mbs_html;
 select concat('<tr><td>',dominio,'</td><td>',replace(replace(item,'<','&lt;'),'>','&gt;'),'</td>',
               '<td><span class="sev s-',sev,'">',sev,'</span></td>',
               '<td class="e-',estado,'">',estado,'</td>',
               '<td>',replace(replace(ifnull(achado,''),'<','&lt;'),'>','&gt;'),'</td></tr>')
-  from mbs_achados order by ord;
-select '</table>';
+  from mbs_achados where @mbs_html order by ord;
+select '</table>' from dual where @mbs_html;
 
 -- ============================================================================
 --  INVENTARIO — contexto para quem le o relatorio
 -- ============================================================================
 
-select '<h2 class="secao" id="inventario">8. Inventario do servidor<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Contexto tecnico para quem le o relatorio sem ter acesso ao servidor. Util tambem como anexo de auditoria: registra a versao exata, as contas existentes e o volume de dado no momento da coleta.</p>';
+select '<h2 class="secao" id="inventario">8. Inventario do servidor<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Contexto tecnico para quem le o relatorio sem ter acesso ao servidor. Util tambem como anexo de auditoria: registra a versao exata, as contas existentes e o volume de dado no momento da coleta.</p>' from dual where @mbs_html;
 
-select '<h3>Identificacao</h3><table><tr><th>Item</th><th>Valor</th></tr>';
+select '<h3>Identificacao</h3><table><tr><th>Item</th><th>Valor</th></tr>' from dual where @mbs_html;
 select concat('<tr><td>',n,'</td><td><code>',v,'</code></td></tr>') from (
   select 'Versao' n, convert(version() using utf8mb4) v union all
   select 'Distribuicao', convert(@@version_comment using utf8mb4) union all
@@ -980,42 +995,42 @@ select concat('<tr><td>',n,'</td><td><code>',v,'</code></td></tr>') from (
   select 'Fuso horario', convert(@@system_time_zone using utf8mb4) union all
   select 'Uptime', convert(concat(round(v2.VARIABLE_VALUE/86400,1),' dia(s)') using utf8mb4)
     from performance_schema.global_status v2 where v2.VARIABLE_NAME='Uptime'
-) t;
-select '</table>';
+) t where @mbs_html;
+select '</table>' from dual where @mbs_html;
 
-select '<p class="leg" style="margin-top:18px"><b>Contas.</b> A coluna SSL mostra se a conta exige conexao cifrada por si so; quando esta vazia, a protecao depende apenas do parametro global. A coluna de plugin identifica o metodo de autenticacao.</p>';
-select '<h3>Contas</h3><table><tr><th>Conta</th><th>Plugin</th><th>Travada</th><th>SSL</th><th>Expira</th><th>Senha alterada em</th></tr>';
+select '<p class="leg" style="margin-top:18px"><b>Contas.</b> A coluna SSL mostra se a conta exige conexao cifrada por si so; quando esta vazia, a protecao depende apenas do parametro global. A coluna de plugin identifica o metodo de autenticacao.</p>' from dual where @mbs_html;
+select '<h3>Contas</h3><table><tr><th>Conta</th><th>Plugin</th><th>Travada</th><th>SSL</th><th>Expira</th><th>Senha alterada em</th></tr>' from dual where @mbs_html;
 select concat('<tr><td><code>',user,'@',host,'</code></td><td>',plugin,'</td>',
               '<td>',if(account_locked='Y','sim','<span class="e-FAIL">nao</span>'),'</td>',
               '<td>',if(ssl_type='','<span class="e-AVALIAR">nenhum</span>',ssl_type),'</td>',
               '<td>',ifnull(cast(password_lifetime as char),'padrao'),'</td>',
               '<td>',ifnull(cast(password_last_changed as char),'&mdash;'),'</td></tr>')
-  from mysql.user order by user, host;
-select '</table>';
+  from mysql.user where @mbs_html order by user, host;
+select '</table>' from dual where @mbs_html;
 
-select '<h3>Schemas e tamanho</h3><table><tr><th>Schema</th><th>Tabelas</th><th>Dados (MB)</th><th>Indice (MB)</th><th>Engines</th></tr>';
+select '<h3>Schemas e tamanho</h3><table><tr><th>Schema</th><th>Tabelas</th><th>Dados (MB)</th><th>Indice (MB)</th><th>Engines</th></tr>' from dual where @mbs_html;
 select concat('<tr><td><b>',table_schema,'</b></td><td>',count(*),'</td>',
               '<td>',round(sum(data_length)/1024/1024,1),'</td>',
               '<td>',round(sum(index_length)/1024/1024,1),'</td>',
               '<td>',group_concat(distinct engine separator ', '),'</td></tr>')
   from information_schema.tables
- where table_schema not in ('information_schema','performance_schema')
+ where table_schema not in ('information_schema','performance_schema') and @mbs_html
  group by table_schema order by sum(data_length) desc;
-select '</table>';
+select '</table>' from dual where @mbs_html;
 
-select '<h3>Maiores tabelas</h3><table><tr><th>Tabela</th><th>Engine</th><th>Linhas (aprox.)</th><th>Total (MB)</th><th>Cifrada</th></tr>';
+select '<h3>Maiores tabelas</h3><table><tr><th>Tabela</th><th>Engine</th><th>Linhas (aprox.)</th><th>Total (MB)</th><th>Cifrada</th></tr>' from dual where @mbs_html;
 select concat('<tr><td><code>',table_schema,'.',table_name,'</code></td><td>',ifnull(engine,'&mdash;'),'</td>',
               '<td>',format(ifnull(table_rows,0),0),'</td>',
               '<td>',round((ifnull(data_length,0)+ifnull(index_length,0))/1024/1024,1),'</td>',
               '<td>',if(create_options like '%ENCRYPTION="Y"%','<span class="e-PASS">sim</span>','<span class="e-AVALIAR">nao</span>'),'</td></tr>')
   from information_schema.tables
  where table_schema not in ('information_schema','performance_schema','mysql','sys')
-   and table_type='BASE TABLE'
+   and table_type='BASE TABLE' and @mbs_html
  order by (ifnull(data_length,0)+ifnull(index_length,0)) desc limit 20;
-select '</table>';
+select '</table>' from dual where @mbs_html;
 
-select '<p class="leg" style="margin-top:18px"><b>Parametros.</b> Os valores abaixo sao os que estavam em vigor na coleta. Compare com o <code>my.cnf</code>: divergencia entre os dois indica parametro alterado em tempo de execucao que voltara ao antigo no proximo restart.</p>';
-select '<h3>Parametros de seguranca</h3><table><tr><th>Parametro</th><th>Valor</th></tr>';
+select '<p class="leg" style="margin-top:18px"><b>Parametros.</b> Os valores abaixo sao os que estavam em vigor na coleta. Compare com o <code>my.cnf</code>: divergencia entre os dois indica parametro alterado em tempo de execucao que voltara ao antigo no proximo restart.</p>' from dual where @mbs_html;
+select '<h3>Parametros de seguranca</h3><table><tr><th>Parametro</th><th>Valor</th></tr>' from dual where @mbs_html;
 select concat('<tr><td><code>',variable_name,'</code></td><td><code>',
               if(variable_value='','(vazio)',replace(replace(variable_value,'<','&lt;'),'>','&gt;')),'</code></td></tr>')
   from performance_schema.global_variables
@@ -1026,29 +1041,145 @@ select concat('<tr><td><code>',variable_name,'</code></td><td><code>',
                          'validate_password.policy','validate_password.length','authentication_policy',
                          'partial_revokes','activate_all_roles_on_login','automatic_sp_privileges',
                          'max_connections','max_user_connections','connect_timeout','wait_timeout')
+   and @mbs_html
  order by variable_name;
-select '</table>';
+select '</table>' from dual where @mbs_html;
 
-select '<h2 class="secao" id="limites">9. Limitacoes e proximos passos<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Esta avaliacao le configuracao. Ela nao tenta explorar nada, nao mede a forca das senhas realmente em uso (apenas se ha politica que as exija), nao verifica se o backup restaura, e nao enxerga o que acontece fora do servidor: regra de firewall, permissao de arquivo no sistema operacional, segredo em codigo da aplicacao.</p>';
-select '<p class="leg">O encaminhamento natural, em ordem: (1) tratar as falhas criticas e altas em janela de mudanca, comecando pelas de identidade e privilegio; (2) decidir os itens em avaliacao com quem conhece a aplicacao, registrando a decisao &mdash; aceitar risco de forma consciente e documentada e uma resposta valida; (3) repetir esta coleta apos as mudancas e comparar a nota; (4) complementar com teste de restauracao de backup e revisao das regras de rede, que estao fora do alcance desta ferramenta.</p>';
+select '<h2 class="secao" id="limites">9. Limitacoes e proximos passos<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Esta avaliacao le configuracao. Ela nao tenta explorar nada, nao mede a forca das senhas realmente em uso (apenas se ha politica que as exija), nao verifica se o backup restaura, e nao enxerga o que acontece fora do servidor: regra de firewall, permissao de arquivo no sistema operacional, segredo em codigo da aplicacao.</p>' from dual where @mbs_html;
+select '<p class="leg">O encaminhamento natural, em ordem: (1) tratar as falhas criticas e altas em janela de mudanca, comecando pelas de identidade e privilegio; (2) decidir os itens em avaliacao com quem conhece a aplicacao, registrando a decisao &mdash; aceitar risco de forma consciente e documentada e uma resposta valida; (3) repetir esta coleta apos as mudancas e comparar a nota; (4) complementar com teste de restauracao de backup e revisao das regras de rede, que estao fora do alcance desta ferramenta.</p>' from dual where @mbs_html;
 
-select '<h2 class="secao" id="referencias">10. Referencias<a class="topo-link" href="#indice">voltar ao indice</a></h2>';
-select '<p class="leg">Fontes usadas nas recomendacoes deste documento. Os links da coluna Doc em cada tabela apontam para a pagina especifica do parametro ou recurso tratado.</p>';
-select '<table><tr><th>Fonte</th><th>Para que serve</th></tr>';
-select '<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/security.html" target="_blank">MySQL Reference Manual &mdash; Security</a></td><td>Capitulo de seguranca da documentacao oficial.</td></tr>';
-select '<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/security-guidelines.html" target="_blank">Security Guidelines</a></td><td>Recomendacoes gerais da Oracle para endurecer a instalacao.</td></tr>';
-select '<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/mysql-nutshell.html" target="_blank">What Is New in MySQL 8.4</a></td><td>Removidos e depreciados que afetam seguranca (ssl, have_ssl, default_authentication_plugin).</td></tr>';
-select '<tr><td><a href="https://www.cisecurity.org/benchmark/oracle_mysql" target="_blank">CIS Oracle MySQL Benchmark</a></td><td>Baseline de configuracao usado nas colunas de referencia.</td></tr>';
-select '<tr><td><a href="https://www.cvedetails.com/vendor/185/Mysql.html" target="_blank">CVE Details &mdash; MySQL</a></td><td>Confira CVEs da sua versao exata e planeje o patch.</td></tr>';
-select '<tr><td><a href="https://www.gov.br/anpd/pt-br" target="_blank">ANPD &mdash; LGPD</a></td><td>Art. 46: medidas tecnicas de protecao do dado pessoal.</td></tr>';
-select '</table>';
+select '<h2 class="secao" id="referencias">10. Referencias<a class="topo-link" href="#indice">voltar ao indice</a></h2>' from dual where @mbs_html;
+select '<p class="leg">Fontes usadas nas recomendacoes deste documento. Os links da coluna Doc em cada tabela apontam para a pagina especifica do parametro ou recurso tratado.</p>' from dual where @mbs_html;
+select '<table><tr><th>Fonte</th><th>Para que serve</th></tr>' from dual where @mbs_html;
+select '<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/security.html" target="_blank">MySQL Reference Manual &mdash; Security</a></td><td>Capitulo de seguranca da documentacao oficial.</td></tr>' from dual where @mbs_html;
+select '<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/security-guidelines.html" target="_blank">Security Guidelines</a></td><td>Recomendacoes gerais da Oracle para endurecer a instalacao.</td></tr>' from dual where @mbs_html;
+select '<tr><td><a href="https://dev.mysql.com/doc/refman/8.4/en/mysql-nutshell.html" target="_blank">What Is New in MySQL 8.4</a></td><td>Removidos e depreciados que afetam seguranca (ssl, have_ssl, default_authentication_plugin).</td></tr>' from dual where @mbs_html;
+select '<tr><td><a href="https://www.cisecurity.org/benchmark/oracle_mysql" target="_blank">CIS Oracle MySQL Benchmark</a></td><td>Baseline de configuracao usado nas colunas de referencia.</td></tr>' from dual where @mbs_html;
+select '<tr><td><a href="https://www.cvedetails.com/vendor/185/Mysql.html" target="_blank">CVE Details &mdash; MySQL</a></td><td>Confira CVEs da sua versao exata e planeje o patch.</td></tr>' from dual where @mbs_html;
+select '<tr><td><a href="https://www.gov.br/anpd/pt-br" target="_blank">ANPD &mdash; LGPD</a></td><td>Art. 46: medidas tecnicas de protecao do dado pessoal.</td></tr>' from dual where @mbs_html;
+select '</table>' from dual where @mbs_html;
 
 select concat('<footer>MyBraboSat ',@mbs_versao,' &middot; by &bull; DBA BRABO &middot; ',
               'relatorio gerado em ',date_format(@mbs_gerado_em,'%d/%m/%Y %H:%i:%s'),'<br>',
               'Inspirado no <a href="https://github.com/meob/MySAT" target="_blank">MySAT</a> ',
               '(XeniaLAB srl, licenca MIT). Este derivado tambem e MIT.<br>',
-              'Documento confidencial: contem o retrato da postura de seguranca do banco.</footer>');
-select '</div></body></html>';
+              'Documento confidencial: contem o retrato da postura de seguranca do banco.</footer>') from dual where @mbs_html;
+select '</div></body></html>' from dual where @mbs_html;
+
+-- ============================================================================
+--  RELATORIO EM TEXTO — para ler no terminal (@mbs_formato = 'txt')
+--
+--  Mesmos achados, mesma nota e mesma ordem do HTML, em texto puro de ate
+--  100 colunas: sem cor, sem tabulacao e sem quebra de linha dentro de um
+--  valor. Em modo batch o cliente mysql escreve TAB e quebra de linha de um
+--  valor como "\t" e "\n" literais; por isso cada linha do relatorio e uma
+--  linha do resultado, e os blocos de varias linhas sao montados por JOIN
+--  com uma lista de numeros (uma linha do bloco por numero).
+-- ============================================================================
+
+set @t_linha = repeat('=',100);
+set @t_fina  = repeat('-',100);
+
+select @t_linha from dual where @mbs_txt;
+select concat(' MyBraboSat ',@mbs_versao,' - MySQL Security Assessment',
+              lpad('by * DBA BRABO  ',100-length(concat(' MyBraboSat ',@mbs_versao,' - MySQL Security Assessment')),' '))
+  from dual where @mbs_txt;
+select @t_linha from dual where @mbs_txt;
+select concat(' Servidor .......: ',@mbs_servidor) from dual where @mbs_txt;
+select concat(' Versao do MySQL : ',@mbs_versao_sql,' (',convert(@@version_comment using utf8mb4),')') from dual where @mbs_txt;
+select concat(' Data da coleta .: ',date_format(@mbs_gerado_em,'%d/%m/%Y %H:%i'),'   por ',@mbs_usuario) from dual where @mbs_txt;
+select ' Classificacao ..: ALTAMENTE CONFIDENCIAL - mapa das fraquezas deste servidor' from dual where @mbs_txt;
+select @t_fina from dual where @mbs_txt;
+select concat(' NOTA DE POSTURA : ',@nota,'/100  (',upper(@classe),')') from dual where @mbs_txt;
+select concat(' ',@veredito) from dual where @mbs_txt;
+select '' from dual where @mbs_txt;
+select concat(' Falhas: critica ',@n_crit,' | alta ',@n_alta,' | media ',@n_media,' | baixa ',@n_baixa,
+              '     Avaliar: ',@n_aval,'     OK: ',@n_pass,'     Verificacoes: ',@n_tot)
+  from dual where @mbs_txt;
+select ' Peso por severidade: critica 10, alta 6, media 3, baixa 1. FAIL perde o peso, AVALIAR perde metade.'
+  from dual where @mbs_txt;
+select @t_linha from dual where @mbs_txt;
+
+-- ------------------------------------------------------------- falhas
+select '' from dual where @mbs_txt;
+select ' 1. FALHAS E REMEDIACAO  (da mais grave para a menos grave)' from dual where @mbs_txt;
+select @t_fina from dual where @mbs_txt;
+select if(@n_crit+@n_alta+@n_media+@n_baixa = 0,' Nenhuma falha encontrada.','') from dual where @mbs_txt;
+-- Uma linha do resultado por linha do texto (ver o cabecalho deste bloco).
+-- JOIN com 1..5 em vez de UNION: tabela TEMPORARY nao pode aparecer duas
+-- vezes na mesma consulta (ERROR 1137 Can't reopen table: 'mbs_achados').
+select case n.p
+         when 1 then concat(' [',rpad(upper(a.sev),7,' '),'] ',a.item,'  (',a.dominio,')')
+         when 2 then concat('     Achado ...: ',ifnull(a.achado,'-'))
+         when 3 then concat('     Correcao .: ',ifnull(a.correcao,'-'))
+         when 4 then concat('     Referencia: ',ifnull(a.doc,'-'),if(a.ref is null,'',concat('  (',a.ref,')')))
+         else '' end
+  from mbs_achados a
+  join (select 1 p union all select 2 union all select 3 union all select 4 union all select 5) n
+ where a.estado='FAIL' and @mbs_txt
+ order by field(a.sev,'critica','alta','media','baixa','info'), a.ord, n.p;
+
+-- ------------------------------------------------------------ a avaliar
+select ' 2. ITENS PARA AVALIAR  (dependem do contexto da aplicacao; nao sao defeitos)' from dual where @mbs_txt;
+select @t_fina from dual where @mbs_txt;
+select if(@n_aval=0,' Nada pendente de avaliacao.','') from dual where @mbs_txt;
+select case n.p
+         when 1 then concat(' [',rpad(upper(a.sev),7,' '),'] ',a.item,'  (',a.dominio,')')
+         when 2 then concat('     Situacao .: ',ifnull(a.achado,'-'))
+         when 3 then concat('     Sugestao .: ',ifnull(a.correcao,'-'))
+         else '' end
+  from mbs_achados a
+  join (select 1 p union all select 2 union all select 3 union all select 4) n
+ where a.estado='AVALIAR' and @mbs_txt
+ order by field(a.sev,'critica','alta','media','baixa','info'), a.ord, n.p;
+
+-- -------------------------------------------------------- todos os checks
+select ' 3. TODAS AS VERIFICACOES  (evidencia de cobertura, inclusive o que passou)' from dual where @mbs_txt;
+select @t_fina from dual where @mbs_txt;
+select concat(' ',rpad('ESTADO',8,' '),rpad('SEV',9,' '),rpad('DOMINIO',24,' '),'VERIFICACAO') from dual where @mbs_txt;
+select concat(' ',rpad(estado,8,' '),rpad(sev,9,' '),rpad(left(dominio,23),24,' '),item)
+  from mbs_achados where @mbs_txt order by ord;
+
+-- ------------------------------------------------------------ inventario
+select '' from dual where @mbs_txt;
+select ' 4. INVENTARIO DO SERVIDOR' from dual where @mbs_txt;
+select @t_fina from dual where @mbs_txt;
+select concat(' ',rpad(n,22,'.'),' ',v) from (
+  select 'Versao' n, convert(version() using utf8mb4) v union all
+  select 'Distribuicao', convert(@@version_comment using utf8mb4) union all
+  select 'Hostname', convert(@@hostname using utf8mb4) union all
+  select 'Porta', convert(cast(@@port as char) using utf8mb4) union all
+  select 'Datadir', convert(@@datadir using utf8mb4) union all
+  select 'Charset do servidor', convert(@@character_set_server using utf8mb4) union all
+  select 'Uptime', convert(concat(round(v2.VARIABLE_VALUE/86400,1),' dia(s)') using utf8mb4)
+    from performance_schema.global_status v2 where v2.VARIABLE_NAME='Uptime'
+) t where @mbs_txt;
+select '' from dual where @mbs_txt;
+select concat(' ',rpad('CONTA',40,' '),rpad('PLUGIN',26,' '),rpad('TRAVADA',9,' '),'SSL') from dual where @mbs_txt;
+select concat(' ',rpad(left(concat(user,'@',host),39),40,' '),rpad(left(plugin,25),26,' '),
+              rpad(if(account_locked='Y','sim','nao'),9,' '),if(ssl_type='','nenhum',ssl_type))
+  from mysql.user where @mbs_txt order by user, host;
+select '' from dual where @mbs_txt;
+select concat(' ',rpad('PARAMETRO',36,' '),'VALOR') from dual where @mbs_txt;
+select concat(' ',rpad(variable_name,36,' '),if(variable_value='','(vazio)',variable_value))
+  from performance_schema.global_variables
+ where variable_name in ('require_secure_transport','tls_version','local_infile','secure_file_priv',
+                         'skip_name_resolve','general_log','log_bin','binlog_encryption',
+                         'innodb_redo_log_encrypt','innodb_undo_log_encrypt','default_password_lifetime',
+                         'password_history','password_reuse_interval','validate_password.policy',
+                         'validate_password.length','authentication_policy','partial_revokes')
+   and @mbs_txt
+ order by variable_name;
+
+select '' from dual where @mbs_txt;
+select @t_linha from dual where @mbs_txt;
+select ' Esta avaliacao le configuracao: nao explora nada, nao testa a forca das senhas em uso, nao' from dual where @mbs_txt;
+select ' verifica restauracao de backup nem enxerga firewall, permissao de arquivo ou segredo na aplicacao.' from dual where @mbs_txt;
+select ' Relatorio completo (capa, indice, legendas, links, PDF): gere em HTML (@mbs_formato = html).' from dual where @mbs_txt;
+select concat(' MyBraboSat ',@mbs_versao,' * by DBA BRABO * gerado em ',
+              date_format(@mbs_gerado_em,'%d/%m/%Y %H:%i:%s'),' * inspirado no MySAT (MIT)')
+  from dual where @mbs_txt;
+select @t_linha from dual where @mbs_txt;
 
 drop temporary table if exists mbs_achados;
